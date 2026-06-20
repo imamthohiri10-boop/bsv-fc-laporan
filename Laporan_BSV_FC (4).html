@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laporan BSV FC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --field-900:#0A1F13;
+  --field-800:#0F2818;
+  --field-700:#143620;
+  --field-600:#1B4A2C;
+  --field-500:#246639;
+  --line:#F7F5EF;
+  --gold-50:#FCF6E4;
+  --gold-200:#F2D98A;
+  --gold-400:#E8B339;
+  --gold-600:#C8941F;
+  --gold-800:#8A6313;
+  --red-400:#D9594A;
+  --red-600:#B83A2C;
+  --red-800:#7A2419;
+  --ink-900:#15201A;
+  --ink-700:#3F4B43;
+  --ink-500:#6B7568;
+  --ink-300:#A8B0A6;
+  --ink-100:#E4E7E1;
+  --ink-50:#F4F5F1;
+  --paper:#FFFFFF;
+  --shadow-sm: 0 1px 2px rgba(15,40,24,0.06);
+  --shadow-md: 0 4px 16px rgba(15,40,24,0.08);
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Archivo',system-ui,sans-serif;
+  background:var(--ink-50);
+  color:var(--ink-900);
+  -webkit-font-smoothing:antialiased;
+  font-size:15px;
+  line-height:1.5;
+}
+.num, .scoreboard, h1.brand{font-family:'Archivo Black',system-ui,sans-serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--gold-200);}
+
+.app-shell{display:flex;min-height:100vh;}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+  width:248px;
+  background:var(--field-900);
+  color:var(--line);
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+  position:sticky;
+  top:0;
+  height:100vh;
+  z-index:50;
+}
+.sidebar-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:22px 20px;
+  border-bottom:1px solid rgba(247,245,239,0.08);
+}
+.sidebar-brand img{width:34px;height:34px;border-radius:7px;object-fit:cover;flex-shrink:0;}
+.sidebar-brand .crest-fallback{
+  width:34px;height:34px;border-radius:7px;flex-shrink:0;
+  background:var(--gold-400);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Archivo Black';font-size:13px;color:var(--field-900);
+}
+.sidebar-brand .brand-text{line-height:1.2;}
+.sidebar-brand .brand-text strong{display:block;font-size:14px;font-weight:700;letter-spacing:0.02em;color:var(--line);}
+.sidebar-brand .brand-text span{display:block;font-size:10.5px;color:var(--gold-200);letter-spacing:0.12em;text-transform:uppercase;margin-top:1px;}
+
+.sidebar-section-label{
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  color:var(--ink-300);
+  padding:18px 20px 8px;
+  font-weight:600;
+}
+.sidebar-nav{flex:1;overflow-y:auto;padding-bottom:12px;}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:10px 20px;
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--ink-300);
+  border-left:3px solid transparent;
+  transition:background 0.12s,color 0.12s;
+}
+.nav-item i{font-size:17px;width:18px;text-align:center;flex-shrink:0;}
+.nav-item:hover{background:rgba(247,245,239,0.05);color:var(--line);}
+.nav-item.active{
+  background:rgba(232,179,57,0.1);
+  color:var(--gold-200);
+  border-left-color:var(--gold-400);
+  font-weight:600;
+}
+.sidebar-foot{
+  border-top:1px solid rgba(247,245,239,0.08);
+  padding:14px 20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.avatar-chip{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--field-600);
+  color:var(--gold-200);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;
+  border:1px solid rgba(232,179,57,0.3);
+}
+.sidebar-foot .who{flex:1;min-width:0;}
+.sidebar-foot .who strong{display:block;font-size:12.5px;color:var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-foot .who span{display:block;font-size:10.5px;color:var(--ink-300);}
+.icon-btn{
+  background:transparent;border:none;color:var(--ink-300);
+  width:28px;height:28px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.icon-btn:hover{background:rgba(247,245,239,0.08);color:var(--line);}
+
+/* ===== MAIN ===== */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{
+  background:var(--paper);
+  border-bottom:1px solid var(--ink-100);
+  padding:16px 32px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  position:sticky;
+  top:0;
+  z-index:30;
+}
+.topbar h1{font-size:19px;font-weight:700;color:var(--field-900);letter-spacing:-0.01em;}
+.topbar .sub{font-size:12.5px;color:var(--ink-500);margin-top:1px;}
+.mobile-toggle{display:none;background:transparent;border:none;font-size:22px;color:var(--field-900);width:32px;height:32px;}
+
+.content{padding:28px 32px 60px;max-width:1280px;}
+
+/* ===== Mobile menu button shown on small screens ===== */
+@media (max-width: 900px){
+  .sidebar{
+    position:fixed;left:0;top:0;
+    transform:translateX(-100%);
+    transition:transform 0.2s ease;
+    box-shadow:var(--shadow-md);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .mobile-toggle{display:flex;align-items:center;justify-content:center;}
+  .content{padding:20px 16px 48px;}
+  .topbar{padding:14px 16px;flex-wrap:wrap;}
+  .topbar h1{font-size:17px;}
+  #topbarActions{width:100%;}
+  #topbarActions .btn{width:100%;}
+  .sidebar-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(10,31,19,0.45);z-index:40;
+  }
+  .sidebar-backdrop.open{display:block;}
+}
+
+/* ===== Reusable components ===== */
+.card{
+  background:var(--paper);
+  border:1px solid var(--ink-100);
+  border-radius:var(--radius-lg);
+  padding:20px 22px;
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 16px;border-radius:var(--radius-sm);
+  font-size:13.5px;font-weight:600;border:1px solid transparent;
+  transition:filter 0.12s, transform 0.05s;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(0.98);}
+.btn-primary{background:var(--field-800);color:var(--line);}
+.btn-primary:hover{filter:brightness(1.15);}
+.btn-gold{background:var(--gold-400);color:var(--field-900);}
+.btn-gold:hover{filter:brightness(1.06);}
+.btn-outline{background:transparent;border-color:var(--ink-100);color:var(--ink-700);}
+.btn-outline:hover{background:var(--ink-50);border-color:var(--ink-300);}
+.btn-danger{background:transparent;border-color:var(--red-400);color:var(--red-600);}
+.btn-danger:hover{background:#FCEBEB;}
+.btn-sm{padding:6px 11px;font-size:12.5px;}
+.btn:disabled{opacity:0.45;cursor:not-allowed;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-700);margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:9px 12px;border:1px solid var(--ink-100);border-radius:var(--radius-sm);
+  font-size:13.5px;background:var(--paper);color:var(--ink-900);
+  transition:border-color 0.12s, box-shadow 0.12s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--field-600);box-shadow:0 0 0 3px rgba(36,102,57,0.12);
+}
+.field-hint{font-size:11.5px;color:var(--ink-500);margin-top:4px;}
+.field-error{font-size:11.5px;color:var(--red-600);margin-top:4px;font-weight:600;}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.01em;}
+.badge-green{background:#EAF3DE;color:#27500A;}
+.badge-red{background:#FCEBEB;color:#791F1F;}
+.badge-gold{background:var(--gold-50);color:var(--gold-800);}
+.badge-gray{background:var(--ink-100);color:var(--ink-700);}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-500);font-weight:700;padding:10px 14px;border-bottom:1.5px solid var(--ink-100);white-space:nowrap;}
+td{padding:12px 14px;border-bottom:1px solid var(--ink-100);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--ink-50);}
+.table-wrap{overflow-x:auto;border:1px solid var(--ink-100);border-radius:var(--radius-lg);background:var(--paper);}
+.table-wrap table{min-width:600px;}
+
+.empty-state{padding:48px 24px;text-align:center;color:var(--ink-500);}
+.empty-state i{font-size:32px;color:var(--ink-300);margin-bottom:10px;display:block;}
+.empty-state p{font-size:13.5px;}
+
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(10,31,19,0.5);
+  display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;
+}
+.modal{
+  background:var(--paper);border-radius:var(--radius-lg);
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 12px 40px rgba(10,31,19,0.25);
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--ink-100);}
+.modal-head h3{font-size:16px;font-weight:700;color:var(--field-900);}
+.modal-body{padding:20px 22px;}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:16px 22px;border-top:1px solid var(--ink-100);}
+
+.toast-stack{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px;}
+.toast{
+  background:var(--field-900);color:var(--line);padding:11px 16px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;box-shadow:var(--shadow-md);
+  display:flex;align-items:center;gap:8px;
+  animation:toast-in 0.18s ease;
+}
+.toast.err{background:var(--red-800);}
+.toast i{font-size:15px;}
+@keyframes toast-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.skeleton{background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-50) 37%,var(--ink-100) 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:var(--radius-sm);}
+@keyframes sk{0%{background-position:100% 0;}100%{background-position:0 0;}}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.section-head h2{font-size:17px;font-weight:700;color:var(--field-900);}
+.section-head .sub{font-size:12.5px;color:var(--ink-500);margin-top:2px;}
+
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;}
+
+.scoreboard{
+  background:var(--field-900);
+  border-radius:var(--radius-lg);
+  padding:26px 28px;
+  color:var(--line);
+  position:relative;
+  overflow:hidden;
+}
+.scoreboard::before{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(90deg,rgba(247,245,239,0.025) 0,rgba(247,245,239,0.025) 1px,transparent 1px,transparent 28px);
+  pointer-events:none;
+}
+.scoreboard-label{font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--gold-200);font-weight:700;margin-bottom:8px;}
+.scoreboard-value{font-size:42px;line-height:1;letter-spacing:-0.01em;}
+.scoreboard-sub{font-size:12.5px;color:var(--ink-300);margin-top:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.scoreboard-sub .pt{display:flex;align-items:center;gap:5px;}
+.scoreboard-sub .dot{width:7px;height:7px;border-radius:50%;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;}
+.kpi-card{background:var(--paper);border:1px solid var(--ink-100);border-radius:var(--radius-lg);padding:16px 18px;}
+.kpi-card .lbl{font-size:11.5px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:6px;}
+.kpi-card .val{font-size:24px;font-weight:700;color:var(--field-900);margin-top:6px;letter-spacing:-0.01em;}
+.kpi-card .delta{font-size:11.5px;margin-top:4px;font-weight:600;}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--ink-100);margin-bottom:18px;overflow-x:auto;}
+.tab{padding:10px 14px;font-size:13px;font-weight:600;color:var(--ink-500);border-bottom:2.5px solid transparent;white-space:nowrap;}
+.tab.active{color:var(--field-800);border-bottom-color:var(--gold-400);}
+.tab:hover:not(.active){color:var(--ink-900);}
+
+.login-wrap{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--field-900);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(232,179,57,0.07), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(232,179,57,0.05), transparent 50%);
+  padding:20px;
+}
+.login-card{
+  background:var(--paper);border-radius:var(--radius-lg);
+  width:100%;max-width:380px;padding:34px 30px 28px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+}
+.login-crest{display:flex;flex-direction:column;align-items:center;margin-bottom:22px;}
+.login-crest img{width:64px;height:64px;border-radius:14px;object-fit:cover;margin-bottom:12px;}
+.login-crest .crest-fallback-lg{
+  width:64px;height:64px;border-radius:14px;margin-bottom:12px;
+  background:var(--gold-400);display:flex;align-items:center;justify-content:center;
+  font-family:'Archivo Black';font-size:24px;color:var(--field-900);
+}
+.login-crest h1{font-size:18px;font-weight:700;color:var(--field-900);text-align:center;}
+.login-crest p{font-size:12px;color:var(--ink-500);text-align:center;margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;}
+.demo-box{background:var(--ink-50);border:1px dashed var(--ink-300);border-radius:var(--radius-sm);padding:11px 13px;margin-top:16px;font-size:11.5px;color:var(--ink-700);line-height:1.6;}
+.demo-box strong{color:var(--field-800);}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+.divider{height:1px;background:var(--ink-100);margin:16px 0;}
+
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--ink-300);border-radius:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+.progress-bar{height:6px;background:var(--ink-100);border-radius:10px;overflow:hidden;}
+.progress-bar > div{height:100%;border-radius:10px;}
+
+.attachment-pill{display:inline-flex;align-items:center;gap:5px;background:var(--ink-50);border:1px solid var(--ink-100);padding:3px 9px;border-radius:20px;font-size:11.5px;color:var(--ink-700);}
+
+@media print{
+  .sidebar,.topbar,.no-print{display:none !important;}
+  .main{margin:0;}
+  body{background:white;}
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css" id="ti-font"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<script>
+/* ============================================================
+   BSV FC FINANCE APP — CORE DATA LAYER
+   Storage strategy: Supabase (PostgreSQL terpusat), supaya data
+   tersambung sama untuk semua pengurus/member dari perangkat
+   manapun, bukan tersimpan terpisah per browser/laptop.
+   ============================================================ */
+
+const SUPABASE_URL = 'https://miwcpoykwiqdulzkmiuf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pd2Nwb3lrd2lxZHVsemttaXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MTYzMDQsImV4cCI6MjA5NzQ5MjMwNH0.Isvs-KjEd-j3nuu4mJZXryj0TiPyYrBfZ9m1vz2vGvQ';
+
+// Key (dipakai di seluruh aplikasi via DB.get/set) -> nama tabel di Supabase.
+// 'club_profile' diperlakukan khusus karena hanya 1 baris (id=1), bukan array.
+const TABLE_MAP = {
+  users: 'users',
+  members: 'members',
+  incomes: 'incomes',
+  expenses: 'expenses',
+  withdrawals: 'withdrawals'
+};
+
+async function supaRequest(path, options={}){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=representation',
+      ...(options.headers||{})
+    }
+  });
+  if(!res.ok){
+    const errText = await res.text().catch(()=> '');
+    throw new Error(`Supabase ${options.method||'GET'} ${path} failed: ${res.status} ${errText}`);
+  }
+  if(res.status === 204) return null;
+  return res.json();
+}
+
+const DB = {
+  PREFIX: 'bsvfc',
+  // 'seeded' tidak relevan lagi di Supabase (data awal sudah diisi lewat SQL),
+  // jadi langsung anggap true supaya ensureSeedData() di bawah berhenti dini.
+  async get(key, fallback){
+    try{
+      if(key === 'seeded') return true;
+
+      if(key === 'club_profile'){
+        const rows = await supaRequest('club_profile?id=eq.1&select=*');
+        if(rows && rows.length){
+          return { name: rows[0].name, logo: rows[0].logo };
+        }
+        return fallback;
+      }
+
+      const table = TABLE_MAP[key];
+      if(!table) return fallback;
+      const rows = await supaRequest(`${table}?select=*&order=created_at.asc.nullslast`);
+      return rows || fallback;
+    }catch(e){
+      console.error('Storage get failed', key, e);
+      return fallback;
+    }
+  },
+  // DB.set selalu dipanggil dengan array/objek LENGKAP (state penuh terbaru),
+  // jadi strategi paling aman & sederhana: hapus semua baris lama di tabel
+  // itu, lalu insert ulang state barunya (upsert massal).
+  async set(key, value){
+    try{
+      if(key === 'seeded') return true;
+
+      if(key === 'club_profile'){
+        await supaRequest('club_profile?id=eq.1', {
+          method: 'PATCH',
+          body: JSON.stringify({ name: value.name, logo: value.logo })
+        });
+        return true;
+      }
+
+      const table = TABLE_MAP[key];
+      if(!table) return false;
+
+      // Hapus semua baris lama di tabel ini
+      await supaRequest(`${table}?id=neq.__never__`, { method: 'DELETE', prefer: 'return=minimal' });
+
+      // Insert ulang seluruh array (kalau kosong, cukup berhenti di sini)
+      if(Array.isArray(value) && value.length){
+        await supaRequest(table, {
+          method: 'POST',
+          body: JSON.stringify(value),
+          prefer: 'return=minimal'
+        });
+      }
+      return true;
+    }catch(e){
+      console.error('Storage set failed', key, e);
+      return false;
+    }
+  },
+  async del(key){
+    try{
+      const table = TABLE_MAP[key];
+      if(table) await supaRequest(`${table}?id=neq.__never__`, { method: 'DELETE', prefer: 'return=minimal' });
+    }catch(e){ console.error('Storage del failed', key, e); }
+  }
+};
+
+/* Simple deterministic hash for demo-grade password storage.
+   NOTE: this is client-side obfuscation, not real cryptographic security.
+   A production deployment needs a real backend with bcrypt + server auth. */
+function simpleHash(str){
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for(let i=0;i<str.length;i++){
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1>>>0)).toString(36);
+}
+
+function uid(prefix){
+  return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+function todayISO(){
+  return new Date().toISOString().slice(0,10);
+}
+
+function formatRupiah(n){
+  n = Number(n)||0;
+  return 'Rp' + Math.round(n).toLocaleString('id-ID');
+}
+
+function formatDate(iso){
+  if(!iso) return '-';
+  const d = new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function formatDateTime(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+
+function monthLabel(ym){
+  const [y,m] = ym.split('-');
+  const d = new Date(Number(y), Number(m)-1, 1);
+  return d.toLocaleDateString('id-ID',{month:'short',year:'numeric'});
+}
+
+const INCOME_CATEGORIES = ['Iuran Member','Donasi','Sponsor','Penjualan Merchandise','Event','Lainnya'];
+const EXPENSE_CATEGORIES = ['Sewa Lapangan','Jersey','Konsumsi','Event','Transportasi','Peralatan','Lainnya'];
+
+/* ============================================================
+   SEED DATA — demo accounts so the app is usable immediately
+   ============================================================ */
+async function ensureSeedData(){
+  const seeded = await DB.get('seeded', false);
+  if(seeded) return;
+  // double-check by inspecting actual data to reduce double-seed risk on concurrent first loads
+  const existingUsers = await DB.get('users', null);
+  if(existingUsers && existingUsers.length){
+    await DB.set('seeded', true);
+    return;
+  }
+
+  const adminId = uid('usr');
+  const memberUserId = uid('usr');
+  const memberId = uid('mem');
+
+  const users = [
+    {
+      id: adminId,
+      name: 'Admin BSV FC',
+      phone: '081200000001',
+      address: 'Sekretariat BSV FC',
+      password: simpleHash('admin123'),
+      role: 'admin',
+      status: 'Aktif',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: memberUserId,
+      name: 'Budi Santoso',
+      phone: '081200000002',
+      address: 'Jl. Lapangan Hijau No. 10',
+      password: simpleHash('member123'),
+      role: 'member',
+      status: 'Aktif',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
+
+  const members = [
+    {
+      id: memberId,
+      user_id: memberUserId,
+      member_code: 'BSV-0001',
+      name: 'Budi Santoso',
+      phone: '081200000002',
+      address: 'Jl. Lapangan Hijau No. 10',
+      join_date: '2024-01-15',
+      status: 'Aktif'
+    },
+    {
+      id: uid('mem'),
+      user_id: null,
+      member_code: 'BSV-0002',
+      name: 'Andi Wijaya',
+      phone: '081200000003',
+      address: 'Jl. Garuda No. 5',
+      join_date: '2024-02-01',
+      status: 'Aktif'
+    },
+    {
+      id: uid('mem'),
+      user_id: null,
+      member_code: 'BSV-0003',
+      name: 'Citra Lestari',
+      phone: '081200000004',
+      address: 'Jl. Merdeka No. 22',
+      join_date: '2024-03-10',
+      status: 'Aktif'
+    }
+  ];
+
+  const now = new Date();
+  function dISO(monthsAgo, day){
+    const d = new Date(now.getFullYear(), now.getMonth()-monthsAgo, day);
+    return d.toISOString().slice(0,10);
+  }
+
+  const incomes = [
+    {id:uid('inc'), transaction_date:dISO(2,5), category:'Iuran Member', description:'Iuran bulanan member - kolektif', amount:1500000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('inc'), transaction_date:dISO(2,18), category:'Sponsor', description:'Sponsor toko olahraga Garuda Sport', amount:2000000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('inc'), transaction_date:dISO(1,3), category:'Iuran Member', description:'Iuran bulanan member - kolektif', amount:1600000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('inc'), transaction_date:dISO(1,20), category:'Penjualan Merchandise', description:'Penjualan jersey replika', amount:850000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('inc'), transaction_date:dISO(0,2), category:'Donasi', description:'Donasi alumni BSV FC', amount:500000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('inc'), transaction_date:dISO(0,10), category:'Iuran Member', description:'Iuran bulanan member - kolektif', amount:1700000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()}
+  ];
+
+  const expenses = [
+    {id:uid('exp'), transaction_date:dISO(2,8), category:'Sewa Lapangan', description:'Sewa lapangan latihan mingguan (4x)', amount:800000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('exp'), transaction_date:dISO(2,15), category:'Konsumsi', description:'Konsumsi latihan dan pertandingan', amount:350000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('exp'), transaction_date:dISO(1,6), category:'Sewa Lapangan', description:'Sewa lapangan latihan mingguan (4x)', amount:800000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('exp'), transaction_date:dISO(1,22), category:'Peralatan', description:'Pembelian bola dan cone latihan', amount:450000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('exp'), transaction_date:dISO(0,7), category:'Transportasi', description:'Transport tim ke pertandingan tandang', amount:600000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()},
+    {id:uid('exp'), transaction_date:dISO(0,14), category:'Sewa Lapangan', description:'Sewa lapangan latihan mingguan (4x)', amount:800000, attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()}
+  ];
+
+  const withdrawals = [
+    {id:uid('wd'), withdrawal_date:dISO(1,25), amount:500000, purpose:'Uang muka turnamen antar klub', responsible_person:'Ketua BSV FC', notes:'Untuk pendaftaran turnamen regional', attachment:null, created_by:'Admin BSV FC', created_at:new Date().toISOString()}
+  ];
+
+  await DB.set('users', users);
+  await DB.set('members', members);
+  await DB.set('incomes', incomes);
+  await DB.set('expenses', expenses);
+  await DB.set('withdrawals', withdrawals);
+  await DB.set('club_profile', {name:'BSV FC', logo:null});
+  await DB.set('seeded', true);
+}
+
+/* ============================================================
+   DATA ACCESS HELPERS
+   ============================================================ */
+const Store = {
+  async users(){ return DB.get('users', []); },
+  async members(){ return DB.get('members', []); },
+  async incomes(){ return DB.get('incomes', []); },
+  async expenses(){ return DB.get('expenses', []); },
+  async withdrawals(){ return DB.get('withdrawals', []); },
+  async clubProfile(){ return DB.get('club_profile', {name:'BSV FC', logo:null}); },
+
+  async saldoKas(){
+    const [inc, exp, wd] = await Promise.all([this.incomes(), this.expenses(), this.withdrawals()]);
+    const totalIn = inc.reduce((s,x)=>s+Number(x.amount||0),0);
+    const totalExp = exp.reduce((s,x)=>s+Number(x.amount||0),0);
+    const totalWd = wd.reduce((s,x)=>s+Number(x.amount||0),0);
+    return totalIn - totalExp - totalWd;
+  },
+
+  async saldoSebelum(amountExcludeWdId){
+    // saldo kas excluding a specific withdrawal (for edit validation) computed at call time
+    const [inc, exp, wd] = await Promise.all([this.incomes(), this.expenses(), this.withdrawals()]);
+    const totalIn = inc.reduce((s,x)=>s+Number(x.amount||0),0);
+    const totalExp = exp.reduce((s,x)=>s+Number(x.amount||0),0);
+    const totalWd = wd.filter(w=>w.id!==amountExcludeWdId).reduce((s,x)=>s+Number(x.amount||0),0);
+    return totalIn - totalExp - totalWd;
+  }
+};
+
+
+/* ============================================================
+   UI HELPERS — Toast, Modal, Confirm
+   ============================================================ */
+
+function showToast(msg, type){
+  const stack = document.getElementById('toastStack');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type==='err' ? ' err' : '');
+  const icon = type==='err' ? 'ti-alert-circle' : 'ti-check';
+  el.innerHTML = `<i class="ti ${icon}"></i><span></span>`;
+  el.querySelector('span').textContent = msg;
+  stack.appendChild(el);
+  setTimeout(()=>{
+    el.style.transition = 'opacity 0.25s, transform 0.25s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(6px)';
+    setTimeout(()=>el.remove(), 260);
+  }, 2800);
+}
+
+function openModal({title, bodyHTML, footHTML, onMount, width}){
+  closeModal();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.id = 'activeModalBackdrop';
+  backdrop.innerHTML = `
+    <div class="modal" style="${width?`max-width:${width}px`:''}">
+      <div class="modal-head">
+        <h3></h3>
+        <button class="icon-btn" id="modalCloseBtn" aria-label="Tutup" style="color:var(--ink-500)"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body"></div>
+      ${footHTML ? `<div class="modal-foot">${footHTML}</div>` : ''}
+    </div>
+  `;
+  backdrop.querySelector('h3').textContent = title;
+  backdrop.querySelector('.modal-body').innerHTML = bodyHTML;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#modalCloseBtn').onclick = closeModal;
+  backdrop.addEventListener('mousedown', (e)=>{ if(e.target===backdrop) closeModal(); });
+  document.addEventListener('keydown', escCloseHandler);
+  if(onMount) onMount(backdrop);
+  return backdrop;
+}
+
+function escCloseHandler(e){
+  if(e.key==='Escape') closeModal();
+}
+
+function closeModal(){
+  const el = document.getElementById('activeModalBackdrop');
+  if(el) el.remove();
+  document.removeEventListener('keydown', escCloseHandler);
+}
+
+function confirmAction({title, message, confirmLabel, danger, onConfirm}){
+  openModal({
+    title: title || 'Konfirmasi',
+    bodyHTML: `<p style="font-size:13.5px;color:var(--ink-700);line-height:1.6;">${message}</p>`,
+    footHTML: `
+      <button class="btn btn-outline" id="cfCancel">Batal</button>
+      <button class="btn ${danger?'btn-danger':'btn-primary'}" id="cfOk" style="${danger?'background:var(--red-600);color:white;border-color:var(--red-600)':''}">${confirmLabel||'Konfirmasi'}</button>
+    `,
+    width: 380,
+    onMount(modal){
+      modal.querySelector('#cfCancel').onclick = closeModal;
+      modal.querySelector('#cfOk').onclick = ()=>{ closeModal(); onConfirm(); };
+    }
+  });
+}
+
+function escapeHtml(str){
+  if(str===null||str===undefined) return '';
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function el(tag, attrs, children){
+  const e = document.createElement(tag);
+  if(attrs) for(const k in attrs){
+    if(k==='class') e.className = attrs[k];
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  if(children) (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(typeof c==='string') e.appendChild(document.createTextNode(c));
+    else if(c) e.appendChild(c);
+  });
+  return e;
+}
+
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+
+const Auth = {
+  current: null,
+
+  async init(){
+    const sessionId = sessionStorage.getItem('bsvfc_session_uid');
+    if(sessionId){
+      const users = await Store.users();
+      const u = users.find(x=>x.id===sessionId && x.status==='Aktif');
+      if(u) this.current = u;
+    }
+    return this.current;
+  },
+
+  async login(phone, password){
+    const users = await Store.users();
+    const u = users.find(x=>x.phone === phone.trim());
+    if(!u) return {ok:false, error:'Nomor HP tidak terdaftar.'};
+    if(u.status !== 'Aktif') return {ok:false, error:'Akun Anda tidak aktif. Hubungi administrator.'};
+    if(u.password !== simpleHash(password)) return {ok:false, error:'Password salah.'};
+    this.current = u;
+    sessionStorage.setItem('bsvfc_session_uid', u.id);
+    return {ok:true};
+  },
+
+  logout(){
+    this.current = null;
+    sessionStorage.removeItem('bsvfc_session_uid');
+  },
+
+  isAdmin(){
+    return this.current && this.current.role === 'admin';
+  },
+
+  async changePassword(oldPass, newPass){
+    if(!this.current) return {ok:false, error:'Sesi tidak ditemukan.'};
+    if(this.current.password !== simpleHash(oldPass)) return {ok:false, error:'Password lama salah.'};
+    if(newPass.length < 6) return {ok:false, error:'Password baru minimal 6 karakter.'};
+    const users = await Store.users();
+    const idx = users.findIndex(x=>x.id===this.current.id);
+    if(idx<0) return {ok:false, error:'Akun tidak ditemukan.'};
+    users[idx].password = simpleHash(newPass);
+    users[idx].updated_at = new Date().toISOString();
+    await DB.set('users', users);
+    this.current = users[idx];
+    return {ok:true};
+  }
+};
+
+
+/* ============================================================
+   LOGIN VIEW
+   ============================================================ */
+
+async function renderLogin(){
+  const app = document.getElementById('app');
+  const profile = await Store.clubProfile();
+  const crestHTML = profile.logo
+    ? `<img src="${profile.logo}" alt="Logo BSV FC" />`
+    : `<div class="crest-fallback-lg">BSV</div>`;
+
+  app.innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-crest">
+          ${crestHTML}
+          <h1>Laporan BSV FC</h1>
+          <p>Sistem Keuangan Klub</p>
+        </div>
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="loginPhone">Nomor HP</label>
+            <input type="tel" id="loginPhone" inputmode="numeric" placeholder="08xxxxxxxxxx" autocomplete="username" required />
+          </div>
+          <div class="field" style="margin-bottom:6px;">
+            <label for="loginPass">Password</label>
+            <div style="position:relative;">
+              <input type="password" id="loginPass" placeholder="Masukkan password" autocomplete="current-password" required style="padding-right:40px;" />
+              <button type="button" id="togglePass" aria-label="Tampilkan password" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink-500);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;">
+                <i class="ti ti-eye" id="togglePassIcon"></i>
+              </button>
+            </div>
+          </div>
+          <div id="loginError" style="display:none;" class="field-error"></div>
+          <button type="submit" class="btn btn-gold" style="width:100%;margin-top:14px;padding:11px;font-size:14px;" id="loginSubmitBtn">
+            Masuk
+          </button>
+        </form>
+        <div class="demo-box">
+          <strong>Akun contoh:</strong><br/>
+          Admin — 081200000001 / admin123<br/>
+          Member — 081200000002 / member123
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('togglePass').onclick = ()=>{
+    const inp = document.getElementById('loginPass');
+    const icon = document.getElementById('togglePassIcon');
+    if(inp.type==='password'){ inp.type='text'; icon.className='ti ti-eye-off'; }
+    else { inp.type='password'; icon.className='ti ti-eye'; }
+  };
+
+  document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const phone = document.getElementById('loginPhone').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const errBox = document.getElementById('loginError');
+    const btn = document.getElementById('loginSubmitBtn');
+    errBox.style.display = 'none';
+
+    if(!phone || !pass){
+      errBox.textContent = 'Nomor HP dan password wajib diisi.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
+    const result = await Auth.login(phone, pass);
+    if(result.ok){
+      showToast('Berhasil masuk. Selamat datang!');
+      await boot();
+    } else {
+      errBox.textContent = result.error;
+      errBox.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Masuk';
+    }
+  });
+}
+
+
+/* ============================================================
+   DASHBOARD VIEW
+   ============================================================ */
+
+let _dashCharts = [];
+
+function destroyDashCharts(){
+  _dashCharts.forEach(c=>c.destroy());
+  _dashCharts = [];
+}
+
+function lastNMonths(n){
+  const arr = [];
+  const now = new Date();
+  for(let i=n-1;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  return arr;
+}
+
+function sumByMonth(rows, dateField, months){
+  const map = {};
+  months.forEach(m=>map[m]=0);
+  rows.forEach(r=>{
+    const ym = (r[dateField]||'').slice(0,7);
+    if(ym in map) map[ym] += Number(r.amount||0);
+  });
+  return months.map(m=>map[m]);
+}
+
+async function renderDashboard(root){
+  destroyDashCharts();
+  const [incomes, expenses, withdrawals, members] = await Promise.all([
+    Store.incomes(), Store.expenses(), Store.withdrawals(), Store.members()
+  ]);
+
+  const totalIn = incomes.reduce((s,x)=>s+Number(x.amount||0),0);
+  const totalExp = expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+  const totalWd = withdrawals.reduce((s,x)=>s+Number(x.amount||0),0);
+  const saldo = totalIn - totalExp - totalWd;
+  const activeMembers = members.filter(m=>m.status==='Aktif').length;
+
+  // this month vs last month for delta
+  const months = lastNMonths(2);
+  const inThis = sumByMonth(incomes,'transaction_date',months)[1];
+  const inLast = sumByMonth(incomes,'transaction_date',months)[0];
+  const expThis = sumByMonth(expenses,'transaction_date',months)[1];
+  const expLast = sumByMonth(expenses,'transaction_date',months)[0];
+  const inDelta = inLast===0 ? (inThis>0?100:0) : Math.round(((inThis-inLast)/inLast)*100);
+  const expDelta = expLast===0 ? (expThis>0?100:0) : Math.round(((expThis-expLast)/expLast)*100);
+
+  const isAdmin = Auth.isAdmin();
+
+  // Recent activity (last 10 across all transaction types)
+  const activity = [
+    ...incomes.map(x=>({...x, _type:'Pemasukan', _date:x.transaction_date, _icon:'ti-trending-up', _color:'green'})),
+    ...expenses.map(x=>({...x, _type:'Pengeluaran', _date:x.transaction_date, _icon:'ti-trending-down', _color:'red'})),
+    ...withdrawals.map(x=>({...x, _type:'Penarikan', _date:x.withdrawal_date, _icon:'ti-cash-banknote', _color:'gold', description:x.purpose})),
+  ].sort((a,b)=> (b._date||'').localeCompare(a._date||'') || (b.created_at||'').localeCompare(a.created_at||'')).slice(0,10);
+
+  root.innerHTML = `
+    <div class="scoreboard" style="margin-bottom:22px;">
+      <div class="scoreboard-label">Saldo Kas Saat Ini</div>
+      <div class="scoreboard-value num">${formatRupiah(saldo)}</div>
+      <div class="scoreboard-sub">
+        <span class="pt"><span class="dot" style="background:var(--gold-400)"></span>Pemasukan ${formatRupiah(totalIn)}</span>
+        <span class="pt"><span class="dot" style="background:#D9594A"></span>Pengeluaran ${formatRupiah(totalExp)}</span>
+        <span class="pt"><span class="dot" style="background:#9FE1CB"></span>Penarikan ${formatRupiah(totalWd)}</span>
+      </div>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom:22px;">
+      ${isAdmin ? `
+      <div class="kpi-card">
+        <div class="lbl"><i class="ti ti-users" style="font-size:14px"></i>Total Member</div>
+        <div class="val">${activeMembers}</div>
+        <div class="delta" style="color:var(--ink-500);">dari ${members.length} terdaftar</div>
+      </div>` : ''}
+      <div class="kpi-card">
+        <div class="lbl"><i class="ti ti-trending-up" style="font-size:14px"></i>Total Pemasukan</div>
+        <div class="val">${formatRupiah(totalIn)}</div>
+        <div class="delta" style="color:${inDelta>=0?'#27500A':'#791F1F'}">${inDelta>=0?'+':''}${inDelta}% bulan ini</div>
+      </div>
+      <div class="kpi-card">
+        <div class="lbl"><i class="ti ti-trending-down" style="font-size:14px"></i>Total Pengeluaran</div>
+        <div class="val">${formatRupiah(totalExp)}</div>
+        <div class="delta" style="color:${expDelta<=0?'#27500A':'#791F1F'}">${expDelta>=0?'+':''}${expDelta}% bulan ini</div>
+      </div>
+      <div class="kpi-card">
+        <div class="lbl"><i class="ti ti-cash-banknote" style="font-size:14px"></i>Total Penarikan</div>
+        <div class="val">${formatRupiah(totalWd)}</div>
+        <div class="delta" style="color:var(--ink-500);">${withdrawals.length} transaksi</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:22px;" id="chartGrid">
+      <div class="card">
+        <div class="section-head" style="margin-bottom:14px;">
+          <div><h2 style="font-size:14.5px;">Arus kas 6 bulan terakhir</h2></div>
+        </div>
+        <div style="position:relative;height:240px;"><canvas id="cashflowChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-head" style="margin-bottom:14px;">
+          <div><h2 style="font-size:14.5px;">Pemasukan vs Pengeluaran</h2></div>
+        </div>
+        <div style="position:relative;height:240px;"><canvas id="compareChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head" style="margin-bottom:8px;">
+        <div><h2 style="font-size:14.5px;">Aktivitas terbaru</h2><div class="sub">10 transaksi terakhir</div></div>
+      </div>
+      ${activity.length===0 ? `
+        <div class="empty-state"><i class="ti ti-receipt-2"></i><p>Belum ada transaksi tercatat.</p></div>
+      ` : `
+        <div style="overflow-x:auto;margin:0 -22px;padding:0 22px;">
+          <table style="min-width:560px;">
+            <thead><tr><th>Tanggal</th><th>Jenis</th><th>Deskripsi</th><th style="text-align:right;">Nominal</th></tr></thead>
+            <tbody>
+              ${activity.map(a=>`
+                <tr>
+                  <td style="white-space:nowrap;color:var(--ink-500);">${formatDate(a._date)}</td>
+                  <td><span class="badge badge-${a._color==='green'?'green':a._color==='red'?'red':'gold'}"><i class="ti ${a._icon}" style="font-size:12px;"></i>${a._type}</span></td>
+                  <td>${escapeHtml(a.description||a.category||'-')}</td>
+                  <td style="text-align:right;font-weight:600;white-space:nowrap;" class="num">${a._type==='Pemasukan'?'':'-'}${formatRupiah(a.amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    </div>
+  `;
+
+  if(window.innerWidth < 760){
+    document.getElementById('chartGrid').style.gridTemplateColumns = '1fr';
+  }
+
+  if(typeof Chart === 'undefined'){
+    document.getElementById('chartGrid').innerHTML = `
+      <div class="card"><div class="empty-state"><i class="ti ti-chart-line"></i><p>Grafik tidak dapat dimuat. Periksa koneksi internet Anda.</p></div></div>
+    `;
+    return;
+  }
+
+  // Charts
+  const months6 = lastNMonths(6);
+  const inSeries = sumByMonth(incomes,'transaction_date',months6);
+  const expSeries = sumByMonth(expenses,'transaction_date',months6);
+  const labels6 = months6.map(monthLabel);
+
+  const ctx1 = document.getElementById('cashflowChart');
+  const c1 = new Chart(ctx1, {
+    type:'line',
+    data:{
+      labels: labels6,
+      datasets:[
+        {label:'Pemasukan', data:inSeries, borderColor:'#246639', backgroundColor:'rgba(36,102,57,0.08)', fill:true, tension:0.3, pointRadius:3},
+        {label:'Pengeluaran', data:expSeries, borderColor:'#D9594A', backgroundColor:'rgba(217,89,74,0.06)', fill:true, tension:0.3, pointRadius:3}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:11}}}},
+      scales:{
+        y:{ticks:{callback:v=>'Rp'+(v/1000)+'rb', font:{size:10}}, grid:{color:'#F1EFE8'}},
+        x:{ticks:{font:{size:10}}, grid:{display:false}}
+      }
+    }
+  });
+  _dashCharts.push(c1);
+
+  const ctx2 = document.getElementById('compareChart');
+  const c2 = new Chart(ctx2, {
+    type:'doughnut',
+    data:{
+      labels:['Pemasukan','Pengeluaran','Penarikan'],
+      datasets:[{data:[totalIn,totalExp,totalWd], backgroundColor:['#246639','#D9594A','#E8B339'], borderWidth:0}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      cutout:'62%',
+      plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:11}}}}
+    }
+  });
+  _dashCharts.push(c2);
+}
+
+
+/* ============================================================
+   PEMASUKAN (INCOMES)
+   ============================================================ */
+
+let _incFilter = {from:'', to:'', category:''};
+
+async function renderIncomes(root){
+  const isAdmin = Auth.isAdmin();
+  const topbar = document.getElementById('topbarActions');
+  if(isAdmin){
+    topbar.innerHTML = `<button class="btn btn-gold" id="addIncomeBtn"><i class="ti ti-plus"></i>Tambah Pemasukan</button>`;
+    document.getElementById('addIncomeBtn').onclick = ()=>openIncomeForm();
+  }
+
+  await drawIncomeTable(root);
+}
+
+async function drawIncomeTable(root){
+  const all = await Store.incomes();
+  let rows = [...all].sort((a,b)=>(b.transaction_date||'').localeCompare(a.transaction_date||''));
+
+  if(_incFilter.from) rows = rows.filter(r=>r.transaction_date >= _incFilter.from);
+  if(_incFilter.to) rows = rows.filter(r=>r.transaction_date <= _incFilter.to);
+  if(_incFilter.category) rows = rows.filter(r=>r.category === _incFilter.category);
+
+  const total = rows.reduce((s,x)=>s+Number(x.amount||0),0);
+  const isAdmin = Auth.isAdmin();
+
+  root.innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field" style="margin:0;min-width:140px;flex:1;">
+          <label>Dari tanggal</label>
+          <input type="date" id="fFrom" value="${_incFilter.from}" />
+        </div>
+        <div class="field" style="margin:0;min-width:140px;flex:1;">
+          <label>Sampai tanggal</label>
+          <input type="date" id="fTo" value="${_incFilter.to}" />
+        </div>
+        <div class="field" style="margin:0;min-width:160px;flex:1;">
+          <label>Kategori</label>
+          <select id="fCategory">
+            <option value="">Semua kategori</option>
+            ${INCOME_CATEGORIES.map(c=>`<option value="${c}" ${_incFilter.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-outline" id="fReset">Reset</button>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;color:var(--ink-500);">${rows.length} transaksi ditemukan</div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--field-800);">Total: <span class="num">${formatRupiah(total)}</span></div>
+    </div>
+
+    ${rows.length===0 ? `
+      <div class="card"><div class="empty-state"><i class="ti ti-trending-up"></i><p>Belum ada data pemasukan untuk filter ini.</p></div></div>
+    ` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th style="text-align:right;">Nominal</th><th>Input oleh</th>${isAdmin?'<th></th>':''}
+          </tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td style="white-space:nowrap;">${formatDate(r.transaction_date)}</td>
+                <td><span class="badge badge-green">${escapeHtml(r.category)}</span></td>
+                <td>${escapeHtml(r.description||'-')}${r.attachment?`<br/><span class="attachment-pill" style="margin-top:4px;"><i class="ti ti-paperclip" style="font-size:11px"></i>${escapeHtml(r.attachment)}</span>`:''}</td>
+                <td style="text-align:right;font-weight:700;white-space:nowrap;" class="num">${formatRupiah(r.amount)}</td>
+                <td style="color:var(--ink-500);white-space:nowrap;">${escapeHtml(r.created_by||'-')}</td>
+                ${isAdmin ? `
+                <td style="white-space:nowrap;text-align:right;">
+                  <button class="icon-btn" data-edit="${r.id}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                  <button class="icon-btn" data-del="${r.id}" aria-label="Hapus" style="color:var(--red-600);"><i class="ti ti-trash"></i></button>
+                </td>` : ''}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+
+  document.getElementById('fFrom').onchange = e=>{ _incFilter.from = e.target.value; drawIncomeTable(root); };
+  document.getElementById('fTo').onchange = e=>{ _incFilter.to = e.target.value; drawIncomeTable(root); };
+  document.getElementById('fCategory').onchange = e=>{ _incFilter.category = e.target.value; drawIncomeTable(root); };
+  document.getElementById('fReset').onclick = ()=>{ _incFilter = {from:'',to:'',category:''}; drawIncomeTable(root); };
+
+  if(isAdmin){
+    root.querySelectorAll('[data-edit]').forEach(b=>b.onclick = ()=>openIncomeForm(b.dataset.edit));
+    root.querySelectorAll('[data-del]').forEach(b=>b.onclick = ()=>deleteIncome(b.dataset.del, root));
+  }
+}
+
+async function openIncomeForm(id){
+  const all = await Store.incomes();
+  const existing = id ? all.find(x=>x.id===id) : null;
+
+  openModal({
+    title: existing ? 'Edit pemasukan' : 'Tambah pemasukan',
+    width: 460,
+    bodyHTML: `
+      <div class="field">
+        <label for="incDate">Tanggal transaksi</label>
+        <input type="date" id="incDate" value="${existing?existing.transaction_date:todayISO()}" required />
+      </div>
+      <div class="field">
+        <label for="incCategory">Kategori</label>
+        <select id="incCategory" required>
+          ${INCOME_CATEGORIES.map(c=>`<option value="${c}" ${existing&&existing.category===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label for="incDesc">Deskripsi</label>
+        <textarea id="incDesc" rows="2" placeholder="Keterangan transaksi">${existing?escapeHtml(existing.description||''):''}</textarea>
+      </div>
+      <div class="field">
+        <label for="incAmount">Nominal (Rp)</label>
+        <input type="number" id="incAmount" min="0" step="1000" value="${existing?existing.amount:''}" placeholder="0" required />
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="incAttach">Lampiran (opsional)</label>
+        <input type="text" id="incAttach" value="${existing?escapeHtml(existing.attachment||''):''}" placeholder="Nama file bukti, mis. bukti-transfer.jpg" />
+        <div class="field-hint">Catatan nama file bukti transaksi (tanpa unggah file).</div>
+      </div>
+      <div id="incFormErr" class="field-error" style="display:none;margin-top:6px;"></div>
+    `,
+    footHTML: `
+      <button class="btn btn-outline" id="incCancel">Batal</button>
+      <button class="btn btn-gold" id="incSave">Simpan</button>
+    `,
+    onMount(modal){
+      modal.querySelector('#incCancel').onclick = closeModal;
+      modal.querySelector('#incSave').onclick = async ()=>{
+        const date = modal.querySelector('#incDate').value;
+        const category = modal.querySelector('#incCategory').value;
+        const description = modal.querySelector('#incDesc').value.trim();
+        const amount = Number(modal.querySelector('#incAmount').value);
+        const attachment = modal.querySelector('#incAttach').value.trim() || null;
+        const errBox = modal.querySelector('#incFormErr');
+
+        if(!date || !category || !amount || amount<=0){
+          errBox.textContent = 'Tanggal, kategori, dan nominal (lebih dari 0) wajib diisi.';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        const list = await Store.incomes();
+        if(existing){
+          const idx = list.findIndex(x=>x.id===existing.id);
+          list[idx] = {...list[idx], transaction_date:date, category, description, amount, attachment};
+        } else {
+          list.push({
+            id: uid('inc'), transaction_date:date, category, description, amount, attachment,
+            created_by: Auth.current.name, created_at: new Date().toISOString()
+          });
+        }
+        await DB.set('incomes', list);
+        closeModal();
+        showToast(existing ? 'Pemasukan berhasil diperbarui.' : 'Pemasukan berhasil ditambahkan.');
+        await navigate('pemasukan');
+      };
+    }
+  });
+}
+
+function deleteIncome(id, root){
+  confirmAction({
+    title:'Hapus pemasukan?',
+    message:'Transaksi ini akan dihapus permanen dan memengaruhi saldo kas. Tindakan tidak dapat dibatalkan.',
+    confirmLabel:'Hapus',
+    danger:true,
+    onConfirm: async ()=>{
+      const list = await Store.incomes();
+      await DB.set('incomes', list.filter(x=>x.id!==id));
+      showToast('Pemasukan dihapus.');
+      await navigate('pemasukan');
+    }
+  });
+}
+
+
+/* ============================================================
+   PENGELUARAN (EXPENSES)
+   ============================================================ */
+
+let _expFilter = {from:'', to:'', category:''};
+
+async function renderExpenses(root){
+  const isAdmin = Auth.isAdmin();
+  const topbar = document.getElementById('topbarActions');
+  if(isAdmin){
+    topbar.innerHTML = `<button class="btn btn-gold" id="addExpenseBtn"><i class="ti ti-plus"></i>Tambah Pengeluaran</button>`;
+    document.getElementById('addExpenseBtn').onclick = ()=>openExpenseForm();
+  }
+  await drawExpenseTable(root);
+}
+
+async function drawExpenseTable(root){
+  const all = await Store.expenses();
+  let rows = [...all].sort((a,b)=>(b.transaction_date||'').localeCompare(a.transaction_date||''));
+
+  if(_expFilter.from) rows = rows.filter(r=>r.transaction_date >= _expFilter.from);
+  if(_expFilter.to) rows = rows.filter(r=>r.transaction_date <= _expFilter.to);
+  if(_expFilter.category) rows = rows.filter(r=>r.category === _expFilter.category);
+
+  const total = rows.reduce((s,x)=>s+Number(x.amount||0),0);
+  const isAdmin = Auth.isAdmin();
+
+  root.innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field" style="margin:0;min-width:140px;flex:1;">
+          <label>Dari tanggal</label>
+          <input type="date" id="fFrom" value="${_expFilter.from}" />
+        </div>
+        <div class="field" style="margin:0;min-width:140px;flex:1;">
+          <label>Sampai tanggal</label>
+          <input type="date" id="fTo" value="${_expFilter.to}" />
+        </div>
+        <div class="field" style="margin:0;min-width:160px;flex:1;">
+          <label>Kategori</label>
+          <select id="fCategory">
+            <option value="">Semua kategori</option>
+            ${EXPENSE_CATEGORIES.map(c=>`<option value="${c}" ${_expFilter.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-outline" id="fReset">Reset</button>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;color:var(--ink-500);">${rows.length} transaksi ditemukan</div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--red-600);">Total: <span class="num">${formatRupiah(total)}</span></div>
+    </div>
+
+    ${rows.length===0 ? `
+      <div class="card"><div class="empty-state"><i class="ti ti-trending-down"></i><p>Belum ada data pengeluaran untuk filter ini.</p></div></div>
+    ` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th style="text-align:right;">Nominal</th><th>Input oleh</th>${isAdmin?'<th></th>':''}
+          </tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td style="white-space:nowrap;">${formatDate(r.transaction_date)}</td>
+                <td><span class="badge badge-red">${escapeHtml(r.category)}</span></td>
+                <td>${escapeHtml(r.description||'-')}${r.attachment?`<br/><span class="attachment-pill" style="margin-top:4px;"><i class="ti ti-paperclip" style="font-size:11px"></i>${escapeHtml(r.attachment)}</span>`:''}</td>
+                <td style="text-align:right;font-weight:700;white-space:nowrap;" class="num">${formatRupiah(r.amount)}</td>
+                <td style="color:var(--ink-500);white-space:nowrap;">${escapeHtml(r.created_by||'-')}</td>
+                ${isAdmin ? `
+                <td style="white-space:nowrap;text-align:right;">
+                  <button class="icon-btn" data-edit="${r.id}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                  <button class="icon-btn" data-del="${r.id}" aria-label="Hapus" style="color:var(--red-600);"><i class="ti ti-trash"></i></button>
+                </td>` : ''}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+
+  document.getElementById('fFrom').onchange = e=>{ _expFilter.from = e.target.value; drawExpenseTable(root); };
+  document.getElementById('fTo').onchange = e=>{ _expFilter.to = e.target.value; drawExpenseTable(root); };
+  document.getElementById('fCategory').onchange = e=>{ _expFilter.category = e.target.value; drawExpenseTable(root); };
+  document.getElementById('fReset').onclick = ()=>{ _expFilter = {from:'',to:'',category:''}; drawExpenseTable(root); };
+
+  if(isAdmin){
+    root.querySelectorAll('[data-edit]').forEach(b=>b.onclick = ()=>openExpenseForm(b.dataset.edit));
+    root.querySelectorAll('[data-del]').forEach(b=>b.onclick = ()=>deleteExpense(b.dataset.del, root));
+  }
+}
+
+async function openExpenseForm(id){
+  const all = await Store.expenses();
+  const existing = id ? all.find(x=>x.id===id) : null;
+
+  openModal({
+    title: existing ? 'Edit pengeluaran' : 'Tambah pengeluaran',
+    width: 460,
+    bodyHTML: `
+      <div class="field">
+        <label for="expDate">Tanggal pengeluaran</label>
+        <input type="date" id="expDate" value="${existing?existing.transaction_date:todayISO()}" required />
+      </div>
+      <div class="field">
+        <label for="expCategory">Kategori</label>
+        <select id="expCategory" required>
+          ${EXPENSE_CATEGORIES.map(c=>`<option value="${c}" ${existing&&existing.category===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label for="expDesc">Deskripsi</label>
+        <textarea id="expDesc" rows="2" placeholder="Keterangan transaksi">${existing?escapeHtml(existing.description||''):''}</textarea>
+      </div>
+      <div class="field">
+        <label for="expAmount">Nominal (Rp)</label>
+        <input type="number" id="expAmount" min="0" step="1000" value="${existing?existing.amount:''}" placeholder="0" required />
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="expAttach">Bukti pembayaran (opsional)</label>
+        <input type="text" id="expAttach" value="${existing?escapeHtml(existing.attachment||''):''}" placeholder="Nama file bukti, mis. nota-sewa.jpg" />
+        <div class="field-hint">Catatan nama file bukti pembayaran (tanpa unggah file).</div>
+      </div>
+      <div id="expFormErr" class="field-error" style="display:none;margin-top:6px;"></div>
+    `,
+    footHTML: `
+      <button class="btn btn-outline" id="expCancel">Batal</button>
+      <button class="btn btn-gold" id="expSave">Simpan</button>
+    `,
+    onMount(modal){
+      modal.querySelector('#expCancel').onclick = closeModal;
+      modal.querySelector('#expSave').onclick = async ()=>{
+        const date = modal.querySelector('#expDate').value;
+        const category = modal.querySelector('#expCategory').value;
+        const description = modal.querySelector('#expDesc').value.trim();
+        const amount = Number(modal.querySelector('#expAmount').value);
+        const attachment = modal.querySelector('#expAttach').value.trim() || null;
+        const errBox = modal.querySelector('#expFormErr');
+
+        if(!date || !category || !amount || amount<=0){
+          errBox.textContent = 'Tanggal, kategori, dan nominal (lebih dari 0) wajib diisi.';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        const list = await Store.expenses();
+        if(existing){
+          const idx = list.findIndex(x=>x.id===existing.id);
+          list[idx] = {...list[idx], transaction_date:date, category, description, amount, attachment};
+        } else {
+          list.push({
+            id: uid('exp'), transaction_date:date, category, description, amount, attachment,
+            created_by: Auth.current.name, created_at: new Date().toISOString()
+          });
+        }
+        await DB.set('expenses', list);
+        closeModal();
+        showToast(existing ? 'Pengeluaran berhasil diperbarui.' : 'Pengeluaran berhasil ditambahkan.');
+        await navigate('pengeluaran');
+      };
+    }
+  });
+}
+
+function deleteExpense(id, root){
+  confirmAction({
+    title:'Hapus pengeluaran?',
+    message:'Transaksi ini akan dihapus permanen dan memengaruhi saldo kas. Tindakan tidak dapat dibatalkan.',
+    confirmLabel:'Hapus',
+    danger:true,
+    onConfirm: async ()=>{
+      const list = await Store.expenses();
+      await DB.set('expenses', list.filter(x=>x.id!==id));
+      showToast('Pengeluaran dihapus.');
+      await navigate('pengeluaran');
+    }
+  });
+}
+
+
+/* ============================================================
+   PENARIKAN DANA (WITHDRAWALS)
+   ============================================================ */
+
+let _wdFilter = {from:'', to:'', q:''};
+
+async function renderWithdrawals(root){
+  const isAdmin = Auth.isAdmin();
+  const topbar = document.getElementById('topbarActions');
+  if(isAdmin){
+    topbar.innerHTML = `<button class="btn btn-gold" id="addWdBtn"><i class="ti ti-plus"></i>Tambah Penarikan</button>`;
+    document.getElementById('addWdBtn').onclick = ()=>openWithdrawalForm();
+  }
+  await drawWithdrawalTable(root);
+}
+
+// compute running saldo before/after for each withdrawal in chronological context
+async function computeWithdrawalLedger(){
+  const [incomes, expenses, withdrawals] = await Promise.all([Store.incomes(), Store.expenses(), Store.withdrawals()]);
+  const totalIn = incomes.reduce((s,x)=>s+Number(x.amount||0),0);
+  const totalExp = expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+  const baseAfterIncExp = totalIn - totalExp;
+
+  // sort chronologically ascending by date then created_at to compute running balance
+  const sorted = [...withdrawals].sort((a,b)=> (a.withdrawal_date||'').localeCompare(b.withdrawal_date||'') || (a.created_at||'').localeCompare(b.created_at||''));
+  let running = baseAfterIncExp;
+  const ledger = {};
+  sorted.forEach(w=>{
+    const before = running;
+    const after = running - Number(w.amount||0);
+    ledger[w.id] = {before, after};
+    running = after;
+  });
+  return {ledger, baseAfterIncExp};
+}
+
+async function drawWithdrawalTable(root){
+  const all = await Store.withdrawals();
+  const {ledger} = await computeWithdrawalLedger();
+  const currentSaldo = await Store.saldoKas();
+
+  let rows = [...all].sort((a,b)=>(b.withdrawal_date||'').localeCompare(a.withdrawal_date||'') || (b.created_at||'').localeCompare(a.created_at||''));
+
+  if(_wdFilter.from) rows = rows.filter(r=>r.withdrawal_date >= _wdFilter.from);
+  if(_wdFilter.to) rows = rows.filter(r=>r.withdrawal_date <= _wdFilter.to);
+  if(_wdFilter.q) rows = rows.filter(r=>(r.purpose||'').toLowerCase().includes(_wdFilter.q.toLowerCase()) || (r.responsible_person||'').toLowerCase().includes(_wdFilter.q.toLowerCase()));
+
+  const total = rows.reduce((s,x)=>s+Number(x.amount||0),0);
+  const isAdmin = Auth.isAdmin();
+
+  root.innerHTML = `
+    <div class="kpi-grid" style="margin-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
+      <div class="kpi-card">
+        <div class="lbl"><i class="ti ti-wallet" style="font-size:14px"></i>Saldo kas saat ini</div>
+        <div class="val">${formatRupiah(currentSaldo)}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field" style="margin:0;min-width:140px;flex:1;">
+          <label>Dari tanggal</label>
+          <input type="date" id="fFrom" value="${_wdFilter.from}" />
+        </div>
+        <div class="field" style="margin:0;min-width:140px;flex:1;">
+          <label>Sampai tanggal</label>
+          <input type="date" id="fTo" value="${_wdFilter.to}" />
+        </div>
+        <div class="field" style="margin:0;min-width:180px;flex:1;">
+          <label>Cari keperluan / penanggung jawab</label>
+          <input type="text" id="fQ" value="${escapeHtml(_wdFilter.q)}" placeholder="Cari..." />
+        </div>
+        <button class="btn btn-outline" id="fReset">Reset</button>
+        ${rows.length>0 ? `<button class="btn btn-outline" id="printBtn"><i class="ti ti-printer"></i>Cetak</button>` : ''}
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;color:var(--ink-500);">${rows.length} transaksi ditemukan</div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--gold-800);">Total: <span class="num">${formatRupiah(total)}</span></div>
+    </div>
+
+    ${rows.length===0 ? `
+      <div class="card"><div class="empty-state"><i class="ti ti-cash-banknote"></i><p>Belum ada riwayat penarikan dana.</p></div></div>
+    ` : `
+      <div class="table-wrap" id="wdPrintArea">
+        <table>
+          <thead><tr>
+            <th>Tanggal</th><th>Keperluan</th><th>Penanggung Jawab</th>
+            <th style="text-align:right;">Nominal</th>
+            <th style="text-align:right;">Saldo Sebelum</th>
+            <th style="text-align:right;">Saldo Sesudah</th>
+            ${isAdmin?'<th class="no-print"></th>':''}
+          </tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td style="white-space:nowrap;">${formatDate(r.withdrawal_date)}</td>
+                <td>${escapeHtml(r.purpose)}${r.notes?`<div style="font-size:11.5px;color:var(--ink-500);margin-top:2px;">${escapeHtml(r.notes)}</div>`:''}${r.attachment?`<br/><span class="attachment-pill" style="margin-top:4px;"><i class="ti ti-paperclip" style="font-size:11px"></i>${escapeHtml(r.attachment)}</span>`:''}</td>
+                <td>${escapeHtml(r.responsible_person)}</td>
+                <td style="text-align:right;font-weight:700;white-space:nowrap;" class="num">${formatRupiah(r.amount)}</td>
+                <td style="text-align:right;white-space:nowrap;color:var(--ink-500);" class="num">${ledger[r.id]?formatRupiah(ledger[r.id].before):'-'}</td>
+                <td style="text-align:right;white-space:nowrap;font-weight:600;" class="num">${ledger[r.id]?formatRupiah(ledger[r.id].after):'-'}</td>
+                ${isAdmin ? `
+                <td class="no-print" style="white-space:nowrap;text-align:right;">
+                  <button class="icon-btn" data-edit="${r.id}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                  <button class="icon-btn" data-del="${r.id}" aria-label="Hapus" style="color:var(--red-600);"><i class="ti ti-trash"></i></button>
+                </td>` : ''}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+
+  document.getElementById('fFrom').onchange = e=>{ _wdFilter.from = e.target.value; drawWithdrawalTable(root); };
+  document.getElementById('fTo').onchange = e=>{ _wdFilter.to = e.target.value; drawWithdrawalTable(root); };
+  document.getElementById('fQ').oninput = e=>{ _wdFilter.q = e.target.value; drawWithdrawalTable(root); };
+  document.getElementById('fReset').onclick = ()=>{ _wdFilter = {from:'',to:'',q:''}; drawWithdrawalTable(root); };
+  document.getElementById('printBtn')?.addEventListener('click', ()=>window.print());
+
+  if(isAdmin){
+    root.querySelectorAll('[data-edit]').forEach(b=>b.onclick = ()=>openWithdrawalForm(b.dataset.edit));
+    root.querySelectorAll('[data-del]').forEach(b=>b.onclick = ()=>deleteWithdrawal(b.dataset.del, root));
+  }
+}
+
+async function openWithdrawalForm(id){
+  const all = await Store.withdrawals();
+  const existing = id ? all.find(x=>x.id===id) : null;
+  const availableSaldo = existing ? await Store.saldoSebelum(existing.id) : await Store.saldoKas();
+
+  openModal({
+    title: existing ? 'Edit penarikan dana' : 'Tambah penarikan dana',
+    width: 460,
+    bodyHTML: `
+      <div style="background:var(--ink-50);border-radius:var(--radius-sm);padding:10px 13px;margin-bottom:14px;font-size:12.5px;color:var(--ink-700);">
+        Saldo kas tersedia: <strong class="num" style="color:var(--field-800);">${formatRupiah(availableSaldo)}</strong>
+      </div>
+      <div class="field">
+        <label for="wdDate">Tanggal penarikan</label>
+        <input type="date" id="wdDate" value="${existing?existing.withdrawal_date:todayISO()}" required />
+      </div>
+      <div class="field">
+        <label for="wdAmount">Nominal (Rp)</label>
+        <input type="number" id="wdAmount" min="0" step="1000" value="${existing?existing.amount:''}" placeholder="0" required />
+      </div>
+      <div class="field">
+        <label for="wdPurpose">Keperluan</label>
+        <input type="text" id="wdPurpose" value="${existing?escapeHtml(existing.purpose):''}" placeholder="Tujuan penarikan dana" required />
+      </div>
+      <div class="field">
+        <label for="wdPic">Penanggung jawab</label>
+        <input type="text" id="wdPic" value="${existing?escapeHtml(existing.responsible_person):''}" placeholder="Nama pengambil dana" required />
+      </div>
+      <div class="field">
+        <label for="wdNotes">Catatan tambahan</label>
+        <textarea id="wdNotes" rows="2" placeholder="Opsional">${existing?escapeHtml(existing.notes||''):''}</textarea>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="wdAttach">Bukti penarikan (opsional)</label>
+        <input type="text" id="wdAttach" value="${existing?escapeHtml(existing.attachment||''):''}" placeholder="Nama file bukti" />
+      </div>
+      <div id="wdFormErr" class="field-error" style="display:none;margin-top:6px;"></div>
+    `,
+    footHTML: `
+      <button class="btn btn-outline" id="wdCancel">Batal</button>
+      <button class="btn btn-gold" id="wdSave">Simpan</button>
+    `,
+    onMount(modal){
+      modal.querySelector('#wdCancel').onclick = closeModal;
+      modal.querySelector('#wdSave').onclick = async ()=>{
+        const date = modal.querySelector('#wdDate').value;
+        const amount = Number(modal.querySelector('#wdAmount').value);
+        const purpose = modal.querySelector('#wdPurpose').value.trim();
+        const pic = modal.querySelector('#wdPic').value.trim();
+        const notes = modal.querySelector('#wdNotes').value.trim();
+        const attachment = modal.querySelector('#wdAttach').value.trim() || null;
+        const errBox = modal.querySelector('#wdFormErr');
+
+        if(!date || !amount || amount<=0 || !purpose || !pic){
+          errBox.textContent = 'Tanggal, nominal, keperluan, dan penanggung jawab wajib diisi.';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        const currentAvailable = existing ? await Store.saldoSebelum(existing.id) : await Store.saldoKas();
+        if(amount > currentAvailable){
+          errBox.textContent = `Penarikan melebihi saldo kas tersedia (${formatRupiah(currentAvailable)}).`;
+          errBox.style.display = 'block';
+          return;
+        }
+
+        const list = await Store.withdrawals();
+        if(existing){
+          const idx = list.findIndex(x=>x.id===existing.id);
+          list[idx] = {...list[idx], withdrawal_date:date, amount, purpose, responsible_person:pic, notes, attachment};
+        } else {
+          list.push({
+            id: uid('wd'), withdrawal_date:date, amount, purpose, responsible_person:pic, notes, attachment,
+            created_by: Auth.current.name, created_at: new Date().toISOString()
+          });
+        }
+        await DB.set('withdrawals', list);
+        closeModal();
+        showToast(existing ? 'Penarikan berhasil diperbarui.' : 'Penarikan berhasil ditambahkan.');
+        await navigate('penarikan');
+      };
+    }
+  });
+}
+
+function deleteWithdrawal(id, root){
+  confirmAction({
+    title:'Hapus penarikan?',
+    message:'Riwayat penarikan ini akan dihapus permanen dan memengaruhi saldo kas. Tindakan tidak dapat dibatalkan.',
+    confirmLabel:'Hapus',
+    danger:true,
+    onConfirm: async ()=>{
+      const list = await Store.withdrawals();
+      await DB.set('withdrawals', list.filter(x=>x.id!==id));
+      showToast('Penarikan dihapus.');
+      await navigate('penarikan');
+    }
+  });
+}
+
+
+/* ============================================================
+   DATA MEMBER
+   ============================================================ */
+
+let _memQuery = '';
+
+async function renderMembers(root){
+  if(!Auth.isAdmin()){
+    root.innerHTML = `<div class="card"><div class="empty-state"><i class="ti ti-lock"></i><p>Halaman ini hanya dapat diakses oleh administrator.</p></div></div>`;
+    return;
+  }
+  const topbar = document.getElementById('topbarActions');
+  topbar.innerHTML = `<button class="btn btn-gold" id="addMemberBtn"><i class="ti ti-plus"></i>Tambah Member</button>`;
+  document.getElementById('addMemberBtn').onclick = ()=>openMemberForm();
+  await drawMemberTable(root);
+}
+
+async function drawMemberTable(root){
+  const all = await Store.members();
+  let rows = [...all].sort((a,b)=>(a.member_code||'').localeCompare(b.member_code||''));
+  if(_memQuery){
+    const q = _memQuery.toLowerCase();
+    rows = rows.filter(r=> (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q) || (r.member_code||'').toLowerCase().includes(q));
+  }
+
+  root.innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div class="field" style="margin:0;">
+        <label>Cari member</label>
+        <input type="text" id="memSearch" value="${escapeHtml(_memQuery)}" placeholder="Cari nama, nomor HP, atau kode member..." />
+      </div>
+    </div>
+
+    <div style="font-size:13px;color:var(--ink-500);margin-bottom:10px;">${rows.length} member ditemukan dari ${all.length} total</div>
+
+    ${rows.length===0 ? `
+      <div class="card"><div class="empty-state"><i class="ti ti-users"></i><p>Tidak ada member yang cocok dengan pencarian.</p></div></div>
+    ` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Kode</th><th>Nama</th><th>Nomor HP</th><th>Tanggal Bergabung</th><th>Status</th><th>Akun Login</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td style="white-space:nowrap;color:var(--ink-500);" class="mono">${escapeHtml(r.member_code)}</td>
+                <td style="font-weight:600;">${escapeHtml(r.name)}</td>
+                <td class="mono">${escapeHtml(r.phone)}</td>
+                <td style="white-space:nowrap;">${formatDate(r.join_date)}</td>
+                <td><span class="badge ${r.status==='Aktif'?'badge-green':'badge-gray'}">${r.status}</span></td>
+                <td>${r.user_id ? '<span class="badge badge-gold"><i class="ti ti-circle-check" style="font-size:11px"></i>Punya akun</span>' : '<span class="badge badge-gray">Belum ada</span>'}</td>
+                <td style="white-space:nowrap;text-align:right;">
+                  <button class="icon-btn" data-detail="${r.id}" aria-label="Detail"><i class="ti ti-eye"></i></button>
+                  <button class="icon-btn" data-edit="${r.id}" aria-label="Edit"><i class="ti ti-edit"></i></button>
+                  <button class="icon-btn" data-del="${r.id}" aria-label="Hapus" style="color:var(--red-600);"><i class="ti ti-trash"></i></button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+
+  document.getElementById('memSearch').oninput = e=>{ _memQuery = e.target.value; drawMemberTable(root); };
+  root.querySelectorAll('[data-detail]').forEach(b=>b.onclick = ()=>openMemberDetail(b.dataset.detail));
+  root.querySelectorAll('[data-edit]').forEach(b=>b.onclick = ()=>openMemberForm(b.dataset.edit));
+  root.querySelectorAll('[data-del]').forEach(b=>b.onclick = ()=>deleteMember(b.dataset.del, root));
+}
+
+async function openMemberDetail(id){
+  const members = await Store.members();
+  const m = members.find(x=>x.id===id);
+  if(!m) return;
+  openModal({
+    title: 'Detail member',
+    width: 420,
+    bodyHTML: `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div class="avatar-chip" style="background:var(--field-700);width:48px;height:48px;font-size:16px;">${initials(m.name)}</div>
+        <div>
+          <div style="font-weight:700;font-size:15px;">${escapeHtml(m.name)}</div>
+          <div style="font-size:12px;color:var(--ink-500);" class="mono">${escapeHtml(m.member_code)}</div>
+        </div>
+      </div>
+      <table style="font-size:13px;">
+        <tr><td style="color:var(--ink-500);padding:6px 0;">Nomor HP</td><td style="text-align:right;" class="mono">${escapeHtml(m.phone)}</td></tr>
+        <tr><td style="color:var(--ink-500);padding:6px 0;">Alamat</td><td style="text-align:right;">${escapeHtml(m.address||'-')}</td></tr>
+        <tr><td style="color:var(--ink-500);padding:6px 0;">Tanggal bergabung</td><td style="text-align:right;">${formatDate(m.join_date)}</td></tr>
+        <tr><td style="color:var(--ink-500);padding:6px 0;">Status</td><td style="text-align:right;"><span class="badge ${m.status==='Aktif'?'badge-green':'badge-gray'}">${m.status}</span></td></tr>
+        <tr><td style="color:var(--ink-500);padding:6px 0;">Akun login</td><td style="text-align:right;">${m.user_id?'Terhubung':'Belum dibuat'}</td></tr>
+      </table>
+    `,
+    footHTML: `<button class="btn btn-outline" id="closeDetail">Tutup</button>`,
+    onMount(modal){ modal.querySelector('#closeDetail').onclick = closeModal; }
+  });
+}
+
+async function openMemberForm(id){
+  const members = await Store.members();
+  const existing = id ? members.find(x=>x.id===id) : null;
+
+  openModal({
+    title: existing ? 'Edit member' : 'Tambah member',
+    width: 460,
+    bodyHTML: `
+      <div class="field">
+        <label for="memName">Nama lengkap</label>
+        <input type="text" id="memName" value="${existing?escapeHtml(existing.name):''}" placeholder="Nama member" required />
+      </div>
+      <div class="field">
+        <label for="memPhone">Nomor HP</label>
+        <input type="tel" id="memPhone" value="${existing?escapeHtml(existing.phone):''}" placeholder="08xxxxxxxxxx" required />
+        <div class="field-hint">Nomor HP digunakan sebagai username login.</div>
+      </div>
+      <div class="field">
+        <label for="memAddress">Alamat</label>
+        <textarea id="memAddress" rows="2" placeholder="Alamat lengkap">${existing?escapeHtml(existing.address||''):''}</textarea>
+      </div>
+      <div class="field">
+        <label for="memJoin">Tanggal bergabung</label>
+        <input type="date" id="memJoin" value="${existing?existing.join_date:todayISO()}" required />
+      </div>
+      <div class="field">
+        <label for="memStatus">Status</label>
+        <select id="memStatus">
+          <option value="Aktif" ${existing&&existing.status==='Aktif'?'selected':''}>Aktif</option>
+          <option value="Non Aktif" ${existing&&existing.status==='Non Aktif'?'selected':''}>Non Aktif</option>
+        </select>
+      </div>
+      <div class="divider"></div>
+      <div class="field" style="margin-bottom:0;">
+        <label style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="memCreateAccount" style="width:auto;" ${existing&&existing.user_id?'checked disabled':''} />
+          ${existing&&existing.user_id ? 'Akun login sudah dibuat' : 'Buatkan akun login untuk member ini'}
+        </label>
+      </div>
+      <div id="passwordSection" style="${existing&&existing.user_id?'display:none;':''}margin-top:12px;">
+        <div class="field" style="margin-bottom:0;">
+          <label for="memPassword">Password awal</label>
+          <input type="text" id="memPassword" placeholder="Minimal 6 karakter" />
+          <div class="field-hint">Member dapat mengganti password ini setelah login.</div>
+        </div>
+      </div>
+      <div id="memFormErr" class="field-error" style="display:none;margin-top:10px;"></div>
+    `,
+    footHTML: `
+      <button class="btn btn-outline" id="memCancel">Batal</button>
+      <button class="btn btn-gold" id="memSave">Simpan</button>
+    `,
+    onMount(modal){
+      modal.querySelector('#memCancel').onclick = closeModal;
+      const cb = modal.querySelector('#memCreateAccount');
+      const pwSection = modal.querySelector('#passwordSection');
+      if(!(existing && existing.user_id)){
+        cb.onchange = ()=>{ pwSection.style.display = cb.checked ? 'block' : 'none'; };
+        pwSection.style.display = cb.checked ? 'block' : 'none';
+      }
+
+      modal.querySelector('#memSave').onclick = async ()=>{
+        const name = modal.querySelector('#memName').value.trim();
+        const phone = modal.querySelector('#memPhone').value.trim();
+        const address = modal.querySelector('#memAddress').value.trim();
+        const joinDate = modal.querySelector('#memJoin').value;
+        const status = modal.querySelector('#memStatus').value;
+        const createAccount = cb.checked && !(existing&&existing.user_id);
+        const password = modal.querySelector('#memPassword')?.value || '';
+        const errBox = modal.querySelector('#memFormErr');
+
+        if(!name || !phone || !joinDate){
+          errBox.textContent = 'Nama, nomor HP, dan tanggal bergabung wajib diisi.';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        const allUsers = await Store.users();
+        const allMembers = await Store.members();
+
+        // phone uniqueness check across members (excluding self) and users
+        const phoneTakenMember = allMembers.find(m=>m.phone===phone && m.id!==(existing?existing.id:null));
+        if(phoneTakenMember){
+          errBox.textContent = 'Nomor HP sudah digunakan oleh member lain.';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        if(createAccount){
+          if(password.length < 6){
+            errBox.textContent = 'Password awal minimal 6 karakter untuk membuat akun login.';
+            errBox.style.display = 'block';
+            return;
+          }
+          const phoneTakenUser = allUsers.find(u=>u.phone===phone);
+          if(phoneTakenUser){
+            errBox.textContent = 'Nomor HP sudah terdaftar sebagai akun login.';
+            errBox.style.display = 'block';
+            return;
+          }
+        }
+
+        let userId = existing ? existing.user_id : null;
+
+        if(createAccount){
+          userId = uid('usr');
+          allUsers.push({
+            id: userId, name, phone, address,
+            password: simpleHash(password),
+            role: 'member', status:'Aktif',
+            created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+          });
+          await DB.set('users', allUsers);
+        } else if(existing && existing.user_id){
+          // keep linked user's name/phone in sync
+          const uidx = allUsers.findIndex(u=>u.id===existing.user_id);
+          if(uidx>=0){
+            allUsers[uidx].name = name;
+            allUsers[uidx].phone = phone;
+            allUsers[uidx].address = address;
+            allUsers[uidx].status = status;
+            allUsers[uidx].updated_at = new Date().toISOString();
+            await DB.set('users', allUsers);
+          }
+        }
+
+        if(existing){
+          const idx = allMembers.findIndex(x=>x.id===existing.id);
+          allMembers[idx] = {...allMembers[idx], name, phone, address, join_date:joinDate, status, user_id:userId};
+        } else {
+          const codeNum = allMembers.length + 1;
+          allMembers.push({
+            id: uid('mem'), user_id:userId,
+            member_code: 'BSV-' + String(codeNum).padStart(4,'0'),
+            name, phone, address, join_date:joinDate, status
+          });
+        }
+        await DB.set('members', allMembers);
+        closeModal();
+        showToast(existing ? 'Data member diperbarui.' : 'Member baru ditambahkan.');
+        await navigate('member');
+      };
+    }
+  });
+}
+
+function deleteMember(id, root){
+  confirmAction({
+    title:'Hapus member?',
+    message:'Data member ini akan dihapus. Jika member memiliki akun login, akun tersebut juga akan dinonaktifkan.',
+    confirmLabel:'Hapus',
+    danger:true,
+    onConfirm: async ()=>{
+      const members = await Store.members();
+      const m = members.find(x=>x.id===id);
+      if(m && m.user_id){
+        const users = await Store.users();
+        const idx = users.findIndex(u=>u.id===m.user_id);
+        if(idx>=0){ users[idx].status = 'Non Aktif'; await DB.set('users', users); }
+      }
+      await DB.set('members', members.filter(x=>x.id!==id));
+      showToast('Member dihapus.');
+      await navigate('member');
+    }
+  });
+}
+
+
+/* ============================================================
+   PROFIL & GANTI PASSWORD
+   ============================================================ */
+
+async function renderProfile(root){
+  const u = Auth.current;
+  const isAdmin = Auth.isAdmin();
+  const profile = await Store.clubProfile();
+
+  root.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:760px;" id="profGrid">
+      <div class="card">
+        <div class="section-head" style="margin-bottom:14px;">
+          <div><h2 style="font-size:14.5px;">Informasi akun</h2></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+          <div class="avatar-chip" style="background:var(--field-700);width:48px;height:48px;font-size:16px;">${initials(u.name)}</div>
+          <div>
+            <div style="font-weight:700;font-size:15px;">${escapeHtml(u.name)}</div>
+            <div style="font-size:12px;color:var(--ink-500);">${u.role==='admin'?'Administrator':'Member'}</div>
+          </div>
+        </div>
+        <table style="font-size:13px;">
+          <tr><td style="color:var(--ink-500);padding:7px 0;">Nomor HP</td><td style="text-align:right;" class="mono">${escapeHtml(u.phone)}</td></tr>
+          <tr><td style="color:var(--ink-500);padding:7px 0;">Alamat</td><td style="text-align:right;">${escapeHtml(u.address||'-')}</td></tr>
+          <tr><td style="color:var(--ink-500);padding:7px 0;">Status</td><td style="text-align:right;"><span class="badge badge-green">${u.status}</span></td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="section-head" style="margin-bottom:14px;">
+          <div><h2 style="font-size:14.5px;">Ganti password</h2></div>
+        </div>
+        <form id="pwForm">
+          <div class="field">
+            <label for="oldPw">Password lama</label>
+            <input type="password" id="oldPw" autocomplete="current-password" required />
+          </div>
+          <div class="field">
+            <label for="newPw">Password baru</label>
+            <input type="password" id="newPw" autocomplete="new-password" required />
+            <div class="field-hint">Minimal 6 karakter.</div>
+          </div>
+          <div class="field" style="margin-bottom:6px;">
+            <label for="confirmPw">Konfirmasi password baru</label>
+            <input type="password" id="confirmPw" autocomplete="new-password" required />
+          </div>
+          <div id="pwErr" class="field-error" style="display:none;"></div>
+          <button type="submit" class="btn btn-gold" style="margin-top:8px;">Simpan password baru</button>
+        </form>
+      </div>
+
+      ${isAdmin ? `
+      <div class="card" style="grid-column:1 / -1;">
+        <div class="section-head" style="margin-bottom:14px;">
+          <div><h2 style="font-size:14.5px;">Logo klub</h2><div class="sub">Tampil di sidebar dan halaman login</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div id="logoPreviewWrap" style="width:64px;height:64px;border-radius:14px;overflow:hidden;background:var(--ink-50);border:1px solid var(--ink-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${profile.logo ? `<img src="${profile.logo}" style="width:100%;height:100%;object-fit:cover;" alt="Logo BSV FC" />` : `<span style="font-family:'Archivo Black';color:var(--gold-600);font-size:18px;">BSV</span>`}
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <input type="file" id="logoUpload" accept="image/*" style="font-size:12.5px;" />
+            <div class="field-hint">PNG atau JPG, disarankan persegi, maks 1 MB.</div>
+          </div>
+          ${profile.logo ? `<button class="btn btn-outline btn-sm" id="removeLogoBtn">Hapus logo</button>` : ''}
+        </div>
+      </div>
+      ` : ''}
+    </div>
+  `;
+
+  if(window.innerWidth < 700){
+    document.getElementById('profGrid').style.gridTemplateColumns = '1fr';
+  }
+
+  document.getElementById('pwForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const oldPw = document.getElementById('oldPw').value;
+    const newPw = document.getElementById('newPw').value;
+    const confirmPw = document.getElementById('confirmPw').value;
+    const errBox = document.getElementById('pwErr');
+    errBox.style.display = 'none';
+
+    if(newPw !== confirmPw){
+      errBox.textContent = 'Konfirmasi password baru tidak cocok.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    const result = await Auth.changePassword(oldPw, newPw);
+    if(result.ok){
+      showToast('Password berhasil diubah.');
+      document.getElementById('pwForm').reset();
+    } else {
+      errBox.textContent = result.error;
+      errBox.style.display = 'block';
+    }
+  });
+
+  if(isAdmin){
+    document.getElementById('logoUpload').addEventListener('change', async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 1024*1024){
+        showToast('Ukuran file melebihi 1 MB.', 'err');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async ()=>{
+        const profile = await Store.clubProfile();
+        profile.logo = reader.result;
+        await DB.set('club_profile', profile);
+        showToast('Logo klub diperbarui.');
+        await navigate('profil');
+        await renderShellSidebarOnly();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('removeLogoBtn')?.addEventListener('click', ()=>{
+      confirmAction({
+        title:'Hapus logo klub?',
+        message:'Sidebar dan halaman login akan menampilkan lambang BSV bawaan.',
+        confirmLabel:'Hapus',
+        danger:true,
+        onConfirm: async ()=>{
+          const profile = await Store.clubProfile();
+          profile.logo = null;
+          await DB.set('club_profile', profile);
+          showToast('Logo dihapus.');
+          await navigate('profil');
+          await renderShellSidebarOnly();
+        }
+      });
+    });
+  }
+}
+
+async function renderShellSidebarOnly(){
+  const profile = await Store.clubProfile();
+  const brandEl = document.querySelector('.sidebar-brand');
+  if(!brandEl) return;
+  const crestHTML = profile.logo
+    ? `<img src="${profile.logo}" alt="Logo BSV FC" />`
+    : `<div class="crest-fallback">BSV</div>`;
+  const textHTML = brandEl.querySelector('.brand-text').outerHTML;
+  brandEl.innerHTML = crestHTML + textHTML;
+}
+
+
+/* ============================================================
+   LAPORAN & EXPORT
+   ============================================================ */
+
+let _repTab = 'pemasukan';
+let _repFilter = {dateFrom:'', dateTo:'', month:'', year:'', category:''};
+
+const REPORT_TABS = [
+  {id:'pemasukan', label:'Pemasukan'},
+  {id:'pengeluaran', label:'Pengeluaran'},
+  {id:'penarikan', label:'Penarikan'},
+  {id:'cashflow', label:'Arus Kas'}
+];
+
+function yearOptions(){
+  const y = new Date().getFullYear();
+  const arr = [];
+  for(let i=y;i>=y-4;i--) arr.push(i);
+  return arr;
+}
+
+async function renderReports(root){
+  const topbar = document.getElementById('topbarActions');
+  topbar.innerHTML = '';
+  await drawReportTab(root);
+}
+
+function applyDateFilters(rows, dateField){
+  let r = [...rows];
+  if(_repFilter.dateFrom) r = r.filter(x=>x[dateField] >= _repFilter.dateFrom);
+  if(_repFilter.dateTo) r = r.filter(x=>x[dateField] <= _repFilter.dateTo);
+  if(_repFilter.month) r = r.filter(x=>(x[dateField]||'').slice(5,7) === _repFilter.month);
+  if(_repFilter.year) r = r.filter(x=>(x[dateField]||'').slice(0,4) === String(_repFilter.year));
+  return r;
+}
+
+async function drawReportTab(root){
+  const isAdmin = Auth.isAdmin();
+
+  root.innerHTML = `
+    <div class="tabs" id="repTabs">
+      ${REPORT_TABS.map(t=>`<div class="tab ${_repTab===t.id?'active':''}" data-tab="${t.id}">${t.label}</div>`).join('')}
+    </div>
+    <div id="repFilterBar"></div>
+    <div id="repContent"></div>
+  `;
+
+  root.querySelectorAll('[data-tab]').forEach(t=>{
+    t.onclick = ()=>{ _repTab = t.dataset.tab; _repFilter = {dateFrom:'',dateTo:'',month:'',year:'',category:''}; drawReportTab(root); };
+  });
+
+  const filterBar = document.getElementById('repFilterBar');
+  const catOptions = _repTab==='pemasukan' ? INCOME_CATEGORIES : _repTab==='pengeluaran' ? EXPENSE_CATEGORIES : null;
+
+  if(_repTab !== 'cashflow'){
+    filterBar.innerHTML = `
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="field" style="margin:0;min-width:135px;flex:1;">
+            <label>Dari tanggal</label>
+            <input type="date" id="rFrom" value="${_repFilter.dateFrom}" />
+          </div>
+          <div class="field" style="margin:0;min-width:135px;flex:1;">
+            <label>Sampai tanggal</label>
+            <input type="date" id="rTo" value="${_repFilter.dateTo}" />
+          </div>
+          <div class="field" style="margin:0;min-width:110px;flex:1;">
+            <label>Bulan</label>
+            <select id="rMonth">
+              <option value="">Semua</option>
+              ${['01','02','03','04','05','06','07','08','09','10','11','12'].map((m,i)=>`<option value="${m}" ${_repFilter.month===m?'selected':''}>${monthLabel('2024-'+m).split(' ')[0]}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="margin:0;min-width:100px;flex:1;">
+            <label>Tahun</label>
+            <select id="rYear">
+              <option value="">Semua</option>
+              ${yearOptions().map(y=>`<option value="${y}" ${String(_repFilter.year)===String(y)?'selected':''}>${y}</option>`).join('')}
+            </select>
+          </div>
+          ${catOptions ? `
+          <div class="field" style="margin:0;min-width:150px;flex:1;">
+            <label>Kategori</label>
+            <select id="rCategory">
+              <option value="">Semua kategori</option>
+              ${catOptions.map(c=>`<option value="${c}" ${_repFilter.category===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>` : ''}
+          <button class="btn btn-outline" id="rReset">Reset</button>
+        </div>
+      </div>
+    `;
+    const bind = (id,key)=>{ const e=document.getElementById(id); if(e) e.onchange = ev=>{ _repFilter[key]=ev.target.value; drawReportTab(root); }; };
+    bind('rFrom','dateFrom'); bind('rTo','dateTo'); bind('rMonth','month'); bind('rYear','year'); bind('rCategory','category');
+    document.getElementById('rReset').onclick = ()=>{ _repFilter = {dateFrom:'',dateTo:'',month:'',year:'',category:''}; drawReportTab(root); };
+  } else {
+    filterBar.innerHTML = '';
+  }
+
+  const content = document.getElementById('repContent');
+
+  if(_repTab==='pemasukan') await drawReportIncomes(content);
+  else if(_repTab==='pengeluaran') await drawReportExpenses(content);
+  else if(_repTab==='penarikan') await drawReportWithdrawals(content);
+  else if(_repTab==='cashflow') await drawReportCashflow(content);
+}
+
+async function drawReportIncomes(content){
+  let rows = await Store.incomes();
+  rows = applyDateFilters(rows, 'transaction_date');
+  if(_repFilter.category) rows = rows.filter(r=>r.category===_repFilter.category);
+  rows.sort((a,b)=>(a.transaction_date||'').localeCompare(b.transaction_date||''));
+  const total = rows.reduce((s,x)=>s+Number(x.amount||0),0);
+
+  content.innerHTML = `
+    ${exportBar(rows.length)}
+    ${rows.length===0 ? emptyReport() : `
+      <div class="table-wrap" id="reportTableWrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th style="text-align:right;">Nominal</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`<tr><td>${formatDate(r.transaction_date)}</td><td>${escapeHtml(r.category)}</td><td>${escapeHtml(r.description||'-')}</td><td style="text-align:right;" class="num">${formatRupiah(r.amount)}</td></tr>`).join('')}
+          </tbody>
+          <tfoot><tr><td colspan="3" style="font-weight:700;">Total</td><td style="text-align:right;font-weight:700;" class="num">${formatRupiah(total)}</td></tr></tfoot>
+        </table>
+      </div>
+    `}
+  `;
+  bindExportButtons(rows.map(r=>({Tanggal:formatDate(r.transaction_date), Kategori:r.category, Deskripsi:r.description||'-', Nominal:r.amount})), 'Laporan_Pemasukan_BSV_FC', 'Laporan Pemasukan');
+}
+
+async function drawReportExpenses(content){
+  let rows = await Store.expenses();
+  rows = applyDateFilters(rows, 'transaction_date');
+  if(_repFilter.category) rows = rows.filter(r=>r.category===_repFilter.category);
+  rows.sort((a,b)=>(a.transaction_date||'').localeCompare(b.transaction_date||''));
+  const total = rows.reduce((s,x)=>s+Number(x.amount||0),0);
+
+  content.innerHTML = `
+    ${exportBar(rows.length)}
+    ${rows.length===0 ? emptyReport() : `
+      <div class="table-wrap" id="reportTableWrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th style="text-align:right;">Nominal</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`<tr><td>${formatDate(r.transaction_date)}</td><td>${escapeHtml(r.category)}</td><td>${escapeHtml(r.description||'-')}</td><td style="text-align:right;" class="num">${formatRupiah(r.amount)}</td></tr>`).join('')}
+          </tbody>
+          <tfoot><tr><td colspan="3" style="font-weight:700;">Total</td><td style="text-align:right;font-weight:700;" class="num">${formatRupiah(total)}</td></tr></tfoot>
+        </table>
+      </div>
+    `}
+  `;
+  bindExportButtons(rows.map(r=>({Tanggal:formatDate(r.transaction_date), Kategori:r.category, Deskripsi:r.description||'-', Nominal:r.amount})), 'Laporan_Pengeluaran_BSV_FC', 'Laporan Pengeluaran');
+}
+
+async function drawReportWithdrawals(content){
+  let rows = await Store.withdrawals();
+  rows = applyDateFilters(rows, 'withdrawal_date');
+  const {ledger} = await computeWithdrawalLedger();
+  rows.sort((a,b)=>(a.withdrawal_date||'').localeCompare(b.withdrawal_date||''));
+  const total = rows.reduce((s,x)=>s+Number(x.amount||0),0);
+
+  content.innerHTML = `
+    ${exportBar(rows.length)}
+    ${rows.length===0 ? emptyReport() : `
+      <div class="table-wrap" id="reportTableWrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Keperluan</th><th>Penanggung Jawab</th><th style="text-align:right;">Nominal</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`<tr><td>${formatDate(r.withdrawal_date)}</td><td>${escapeHtml(r.purpose)}</td><td>${escapeHtml(r.responsible_person)}</td><td style="text-align:right;" class="num">${formatRupiah(r.amount)}</td></tr>`).join('')}
+          </tbody>
+          <tfoot><tr><td colspan="3" style="font-weight:700;">Total</td><td style="text-align:right;font-weight:700;" class="num">${formatRupiah(total)}</td></tr></tfoot>
+        </table>
+      </div>
+    `}
+  `;
+  bindExportButtons(rows.map(r=>({Tanggal:formatDate(r.withdrawal_date), Keperluan:r.purpose, 'Penanggung Jawab':r.responsible_person, Nominal:r.amount})), 'Laporan_Penarikan_BSV_FC', 'Laporan Penarikan');
+}
+
+async function drawReportCashflow(content){
+  const [incomes, expenses, withdrawals] = await Promise.all([Store.incomes(), Store.expenses(), Store.withdrawals()]);
+  const totalIn = incomes.reduce((s,x)=>s+Number(x.amount||0),0);
+  const totalExp = expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+  const totalWd = withdrawals.reduce((s,x)=>s+Number(x.amount||0),0);
+  const saldoAkhir = totalIn - totalExp - totalWd;
+
+  // by category breakdown
+  const incByCat = {};
+  INCOME_CATEGORIES.forEach(c=>incByCat[c]=0);
+  incomes.forEach(i=>incByCat[i.category]=(incByCat[i.category]||0)+Number(i.amount||0));
+  const expByCat = {};
+  EXPENSE_CATEGORIES.forEach(c=>expByCat[c]=0);
+  expenses.forEach(e=>expByCat[e.category]=(expByCat[e.category]||0)+Number(e.amount||0));
+
+  content.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;" class="no-print">
+      <button class="btn btn-outline" id="printCashflow"><i class="ti ti-printer"></i>Cetak / PDF</button>
+    </div>
+    <div class="card" id="cashflowReport" style="max-width:520px;">
+      <div style="text-align:center;margin-bottom:18px;">
+        <div style="font-weight:700;font-size:16px;color:var(--field-900);">Laporan Arus Kas (Cashflow)</div>
+        <div style="font-size:12px;color:var(--ink-500);">BSV FC &middot; Dicetak ${formatDateTime(new Date().toISOString())}</div>
+      </div>
+      <table style="font-size:13.5px;">
+        <tr><td style="padding:8px 0;">Saldo Awal</td><td style="text-align:right;" class="num">${formatRupiah(0)}</td></tr>
+        <tr style="border-top:1px solid var(--ink-100);"><td style="padding:8px 0;color:#27500A;">+ Total Pemasukan</td><td style="text-align:right;color:#27500A;font-weight:600;" class="num">${formatRupiah(totalIn)}</td></tr>
+        <tr><td style="padding:8px 0;color:#791F1F;">&minus; Total Pengeluaran</td><td style="text-align:right;color:#791F1F;font-weight:600;" class="num">${formatRupiah(totalExp)}</td></tr>
+        <tr><td style="padding:8px 0;color:var(--gold-800);">&minus; Total Penarikan</td><td style="text-align:right;color:var(--gold-800);font-weight:600;" class="num">${formatRupiah(totalWd)}</td></tr>
+        <tr style="border-top:2px solid var(--field-900);"><td style="padding:10px 0;font-weight:700;font-size:15px;">Saldo Akhir</td><td style="text-align:right;font-weight:700;font-size:15px;" class="num">${formatRupiah(saldoAkhir)}</td></tr>
+      </table>
+
+      <div class="divider"></div>
+      <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;color:var(--field-800);">Rincian pemasukan per kategori</div>
+      <table style="font-size:12.5px;margin-bottom:14px;">
+        ${INCOME_CATEGORIES.filter(c=>incByCat[c]>0).map(c=>`<tr><td style="padding:4px 0;color:var(--ink-700);">${c}</td><td style="text-align:right;" class="num">${formatRupiah(incByCat[c])}</td></tr>`).join('') || '<tr><td style="color:var(--ink-500);padding:4px 0;">Belum ada data</td></tr>'}
+      </table>
+
+      <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;color:var(--field-800);">Rincian pengeluaran per kategori</div>
+      <table style="font-size:12.5px;">
+        ${EXPENSE_CATEGORIES.filter(c=>expByCat[c]>0).map(c=>`<tr><td style="padding:4px 0;color:var(--ink-700);">${c}</td><td style="text-align:right;" class="num">${formatRupiah(expByCat[c])}</td></tr>`).join('') || '<tr><td style="color:var(--ink-500);padding:4px 0;">Belum ada data</td></tr>'}
+      </table>
+    </div>
+  `;
+  document.getElementById('printCashflow').onclick = ()=>window.print();
+}
+
+function exportBar(count){
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;" class="no-print">
+      <div style="font-size:13px;color:var(--ink-500);">${count} baris data</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" id="exportExcelBtn" ${count===0?'disabled':''}><i class="ti ti-file-spreadsheet"></i>Export Excel</button>
+        <button class="btn btn-outline btn-sm" id="exportPdfBtn" ${count===0?'disabled':''}><i class="ti ti-file-type-pdf"></i>Export PDF</button>
+      </div>
+    </div>
+  `;
+}
+
+function emptyReport(){
+  return `<div class="card"><div class="empty-state"><i class="ti ti-file-off"></i><p>Tidak ada data untuk filter yang dipilih.</p></div></div>`;
+}
+
+function bindExportButtons(dataRows, filenameBase, reportTitle){
+  const excelBtn = document.getElementById('exportExcelBtn');
+  const pdfBtn = document.getElementById('exportPdfBtn');
+  if(excelBtn) excelBtn.onclick = ()=>exportToExcel(dataRows, filenameBase, reportTitle);
+  if(pdfBtn) pdfBtn.onclick = ()=>window.print();
+}
+
+let _xlsxLoaded = false;
+function loadXLSXLib(){
+  return new Promise((resolve,reject)=>{
+    if(window.XLSX){ resolve(); return; }
+    if(_xlsxLoaded){ resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = ()=>{ _xlsxLoaded = true; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportToExcel(rows, filenameBase, sheetTitle){
+  try{
+    await loadXLSXLib();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetTitle.slice(0,28));
+    XLSX.writeFile(wb, `${filenameBase}_${todayISO()}.xlsx`);
+    showToast('Excel berhasil diunduh.');
+  }catch(e){
+    console.error(e);
+    showToast('Gagal mengekspor Excel. Coba lagi.', 'err');
+  }
+}
+
+
+/* ============================================================
+   APP SHELL — Sidebar, Topbar, Router
+   ============================================================ */
+
+const Router = {
+  route: 'dashboard',
+  params: {}
+};
+
+const NAV_ADMIN = [
+  {section:'Utama', items:[
+    {id:'dashboard', label:'Dashboard', icon:'ti-layout-dashboard'}
+  ]},
+  {section:'Transaksi', items:[
+    {id:'pemasukan', label:'Pemasukan', icon:'ti-trending-up'},
+    {id:'pengeluaran', label:'Pengeluaran', icon:'ti-trending-down'},
+    {id:'penarikan', label:'Penarikan Dana', icon:'ti-cash-banknote'}
+  ]},
+  {section:'Laporan', items:[
+    {id:'laporan', label:'Laporan & Export', icon:'ti-report-analytics'}
+  ]},
+  {section:'Pengelolaan', items:[
+    {id:'member', label:'Data Member', icon:'ti-users'}
+  ]},
+  {section:'Akun', items:[
+    {id:'profil', label:'Profil & Password', icon:'ti-settings'}
+  ]}
+];
+
+const NAV_MEMBER = [
+  {section:'Utama', items:[
+    {id:'dashboard', label:'Dashboard', icon:'ti-layout-dashboard'}
+  ]},
+  {section:'Riwayat', items:[
+    {id:'pemasukan', label:'Pemasukan', icon:'ti-trending-up'},
+    {id:'pengeluaran', label:'Pengeluaran', icon:'ti-trending-down'},
+    {id:'penarikan', label:'Penarikan Dana', icon:'ti-cash-banknote'}
+  ]},
+  {section:'Laporan', items:[
+    {id:'laporan', label:'Laporan', icon:'ti-report-analytics'}
+  ]},
+  {section:'Akun', items:[
+    {id:'profil', label:'Profil & Password', icon:'ti-settings'}
+  ]}
+];
+
+function initials(name){
+  if(!name) return '?';
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+
+async function renderShell(){
+  const app = document.getElementById('app');
+  const profile = await Store.clubProfile();
+  const nav = Auth.isAdmin() ? NAV_ADMIN : NAV_MEMBER;
+  const u = Auth.current;
+
+  const crestHTML = profile.logo
+    ? `<img src="${profile.logo}" alt="Logo BSV FC" />`
+    : `<div class="crest-fallback">BSV</div>`;
+
+  const navHTML = nav.map(sec=>`
+    <div class="sidebar-section-label">${sec.section}</div>
+    ${sec.items.map(it=>`
+      <a href="#" class="nav-item" data-route="${it.id}">
+        <i class="ti ${it.icon}"></i><span>${it.label}</span>
+      </a>
+    `).join('')}
+  `).join('');
+
+  app.innerHTML = `
+    <div class="app-shell">
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+          ${crestHTML}
+          <div class="brand-text">
+            <strong>Laporan BSV FC</strong>
+            <span>Finance System</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">${navHTML}</nav>
+        <div class="sidebar-foot">
+          <div class="avatar-chip">${initials(u.name)}</div>
+          <div class="who">
+            <strong>${escapeHtml(u.name)}</strong>
+            <span>${u.role==='admin'?'Administrator':'Member'}</span>
+          </div>
+          <button class="icon-btn" id="logoutBtn" aria-label="Keluar"><i class="ti ti-logout-2"></i></button>
+        </div>
+      </aside>
+      <div class="main">
+        <header class="topbar">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Buka menu"><i class="ti ti-menu-2"></i></button>
+            <div>
+              <h1 id="pageTitle">Dashboard</h1>
+              <div class="sub" id="pageSub"></div>
+            </div>
+          </div>
+          <div id="topbarActions"></div>
+        </header>
+        <main class="content" id="contentRoot"></main>
+      </div>
+    </div>
+  `;
+
+  // nav interactions
+  document.querySelectorAll('.nav-item').forEach(a=>{
+    a.addEventListener('click', (e)=>{
+      e.preventDefault();
+      navigate(a.dataset.route);
+      closeSidebarMobile();
+    });
+  });
+  document.getElementById('logoutBtn').onclick = ()=>{
+    confirmAction({
+      title:'Keluar dari aplikasi?',
+      message:'Anda perlu login kembali untuk mengakses Laporan BSV FC.',
+      confirmLabel:'Keluar',
+      danger:true,
+      onConfirm: async ()=>{
+        Auth.logout();
+        await boot();
+        showToast('Anda telah keluar.');
+      }
+    });
+  };
+  document.getElementById('mobileToggle').onclick = ()=>{
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarBackdrop').classList.add('open');
+  };
+  document.getElementById('sidebarBackdrop').onclick = closeSidebarMobile;
+
+  await navigate(Router.route, true);
+}
+
+function closeSidebarMobile(){
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebarBackdrop')?.classList.remove('open');
+}
+
+const PAGE_META = {
+  dashboard: {title:'Dashboard', sub:'Ringkasan kondisi keuangan klub'},
+  pemasukan: {title:'Pemasukan', sub:'Catatan dana masuk ke kas BSV FC'},
+  pengeluaran: {title:'Pengeluaran', sub:'Catatan dana keluar dari kas BSV FC'},
+  penarikan: {title:'Penarikan Dana', sub:'Pengambilan dana dari kas klub'},
+  laporan: {title:'Laporan & Export', sub:'Rekap laporan keuangan periode tertentu'},
+  member: {title:'Data Member', sub:'Kelola anggota dan akun BSV FC'},
+  profil: {title:'Profil & Password', sub:'Pengaturan akun pribadi Anda'}
+};
+
+async function navigate(route, skipPush){
+  if(!PAGE_META[route]) route = 'dashboard';
+  Router.route = route;
+
+  document.querySelectorAll('.nav-item').forEach(a=>{
+    a.classList.toggle('active', a.dataset.route===route);
+  });
+  document.getElementById('pageTitle').textContent = PAGE_META[route].title;
+  document.getElementById('pageSub').textContent = PAGE_META[route].sub;
+  document.getElementById('topbarActions').innerHTML = '';
+
+  const root = document.getElementById('contentRoot');
+  root.innerHTML = renderSkeleton();
+  window.scrollTo(0,0);
+
+  try{
+    switch(route){
+      case 'dashboard': await renderDashboard(root); break;
+      case 'pemasukan': await renderIncomes(root); break;
+      case 'pengeluaran': await renderExpenses(root); break;
+      case 'penarikan': await renderWithdrawals(root); break;
+      case 'laporan': await renderReports(root); break;
+      case 'member': await renderMembers(root); break;
+      case 'profil': await renderProfile(root); break;
+    }
+  }catch(err){
+    console.error(err);
+    root.innerHTML = `<div class="card"><div class="empty-state"><i class="ti ti-alert-triangle"></i><p>Terjadi kesalahan memuat halaman ini. Coba muat ulang.</p></div></div>`;
+  }
+}
+
+function renderSkeleton(){
+  return `
+    <div class="kpi-grid" style="margin-bottom:20px;">
+      ${[1,2,3,4].map(()=>`<div class="skeleton" style="height:88px;"></div>`).join('')}
+    </div>
+    <div class="skeleton" style="height:280px;"></div>
+  `;
+}
+
+async function boot(){
+  await Auth.init();
+  if(Auth.current){
+    Router.route = 'dashboard';
+    await renderShell();
+  } else {
+    await renderLogin();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', async ()=>{
+  document.getElementById('app').innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--field-900);">
+      <div style="text-align:center;color:var(--line);">
+        <div style="font-family:'Archivo Black';font-size:20px;color:var(--gold-400);margin-bottom:8px;">BSV FC</div>
+        <div style="font-size:12.5px;color:var(--ink-300);">Memuat Laporan BSV FC...</div>
+      </div>
+    </div>
+  `;
+  try{
+    await ensureSeedData();
+  }catch(e){
+    console.error('Seed error', e);
+  }
+  await boot();
+});
+
+</script>
+
+
+</body>
+</html>
