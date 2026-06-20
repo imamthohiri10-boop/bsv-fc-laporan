@@ -412,7 +412,8 @@ const DB = {
 
       const table = TABLE_MAP[key];
       if(!table) return fallback;
-      const rows = await supaRequest(`${table}?select=*&order=created_at.asc.nullslast`);
+      const orderCol = (table === 'members') ? 'member_code' : 'created_at';
+      const rows = await supaRequest(`${table}?select=*&order=${orderCol}.asc.nullslast`);
       return rows || fallback;
     }catch(e){
       console.error('Storage get failed', key, e);
@@ -836,14 +837,14 @@ async function renderLogin(){
             Masuk
           </button>
         </form>
-        <div class="demo-box">
-          <strong>Akun contoh:</strong><br/>
-          Admin — 081200000001 / admin123<br/>
-          Member — 081200000002 / member123
+        <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--ink-500);">
+          Belum punya akun? <a href="#" id="goRegisterLink" style="color:var(--gold-600);font-weight:600;text-decoration:none;">Daftar sebagai member</a>
         </div>
       </div>
     </div>
   `;
+
+  document.getElementById('goRegisterLink').onclick = (e)=>{ e.preventDefault(); renderRegister(); };
 
   document.getElementById('togglePass').onclick = ()=>{
     const inp = document.getElementById('loginPass');
@@ -883,8 +884,133 @@ async function renderLogin(){
 
 
 /* ============================================================
-   DASHBOARD VIEW
+   REGISTER VIEW — pendaftaran member baru (status awal: Menunggu
+   Persetujuan, supaya admin yang memutuskan untuk mengaktifkan)
    ============================================================ */
+
+async function renderRegister(){
+  const app = document.getElementById('app');
+  const profile = await Store.clubProfile();
+  const crestHTML = profile.logo
+    ? `<img src="${profile.logo}" alt="Logo BSV FC" />`
+    : `<div class="crest-fallback-lg">BSV</div>`;
+
+  app.innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-crest">
+          ${crestHTML}
+          <h1>Daftar Member Baru</h1>
+          <p>Laporan BSV FC</p>
+        </div>
+        <form id="registerForm" novalidate>
+          <div class="field">
+            <label for="regName">Nama Lengkap</label>
+            <input type="text" id="regName" placeholder="Nama lengkap" autocomplete="name" required />
+          </div>
+          <div class="field">
+            <label for="regPhone">Nomor HP</label>
+            <input type="tel" id="regPhone" inputmode="numeric" placeholder="08xxxxxxxxxx" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="regAddress">Alamat</label>
+            <input type="text" id="regAddress" placeholder="Alamat domisili" autocomplete="address-line1" />
+          </div>
+          <div class="field" style="margin-bottom:6px;">
+            <label for="regPass">Password</label>
+            <div style="position:relative;">
+              <input type="password" id="regPass" placeholder="Minimal 6 karakter" autocomplete="new-password" required style="padding-right:40px;" />
+              <button type="button" id="toggleRegPass" aria-label="Tampilkan password" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink-500);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;">
+                <i class="ti ti-eye" id="toggleRegPassIcon"></i>
+              </button>
+            </div>
+          </div>
+          <div id="registerError" style="display:none;" class="field-error"></div>
+          <button type="submit" class="btn btn-gold" style="width:100%;margin-top:14px;padding:11px;font-size:14px;" id="registerSubmitBtn">
+            Daftar
+          </button>
+        </form>
+        <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--ink-500);">
+          Sudah punya akun? <a href="#" id="backToLoginLink" style="color:var(--gold-600);font-weight:600;text-decoration:none;">Masuk di sini</a>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('backToLoginLink').onclick = (e)=>{ e.preventDefault(); renderLogin(); };
+
+  document.getElementById('toggleRegPass').onclick = ()=>{
+    const inp = document.getElementById('regPass');
+    const icon = document.getElementById('toggleRegPassIcon');
+    if(inp.type==='password'){ inp.type='text'; icon.className='ti ti-eye-off'; }
+    else { inp.type='password'; icon.className='ti ti-eye'; }
+  };
+
+  document.getElementById('registerForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const address = document.getElementById('regAddress').value.trim();
+    const pass = document.getElementById('regPass').value;
+    const errBox = document.getElementById('registerError');
+    const btn = document.getElementById('registerSubmitBtn');
+    errBox.style.display = 'none';
+
+    if(!name || !phone || !pass){
+      errBox.textContent = 'Nama, nomor HP, dan password wajib diisi.';
+      errBox.style.display = 'block';
+      return;
+    }
+    if(pass.length < 6){
+      errBox.textContent = 'Password minimal 6 karakter.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
+
+    const users = await Store.users();
+    if(users.some(u=>u.phone===phone)){
+      errBox.textContent = 'Nomor HP ini sudah terdaftar. Silakan masuk, atau gunakan nomor lain.';
+      errBox.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Daftar';
+      return;
+    }
+
+    const newUserId = uid('usr');
+    const now = new Date().toISOString();
+    users.push({
+      id: newUserId,
+      name, phone, address,
+      password: simpleHash(pass),
+      role: 'member',
+      status: 'Menunggu Persetujuan',
+      created_at: now,
+      updated_at: now
+    });
+    await DB.set('users', users);
+
+    const members = await Store.members();
+    const nextNum = members.length + 1;
+    const member_code = 'BSV-' + String(nextNum).padStart(4,'0');
+    members.push({
+      id: uid('mem'),
+      user_id: newUserId,
+      member_code,
+      name, phone, address,
+      join_date: todayISO(),
+      status: 'Menunggu Persetujuan'
+    });
+    await DB.set('members', members);
+
+    showToast('Pendaftaran berhasil! Akun Anda menunggu persetujuan admin.');
+    renderLogin();
+  });
+}
+
+
 
 let _dashCharts = [];
 
@@ -1795,6 +1921,7 @@ async function openMemberForm(id){
       <div class="field">
         <label for="memStatus">Status</label>
         <select id="memStatus">
+          <option value="Menunggu Persetujuan" ${existing&&existing.status==='Menunggu Persetujuan'?'selected':''}>Menunggu Persetujuan</option>
           <option value="Aktif" ${existing&&existing.status==='Aktif'?'selected':''}>Aktif</option>
           <option value="Non Aktif" ${existing&&existing.status==='Non Aktif'?'selected':''}>Non Aktif</option>
         </select>
