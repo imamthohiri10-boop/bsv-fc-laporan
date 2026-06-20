@@ -1813,6 +1813,10 @@ async function renderMembers(root){
 
 async function drawMemberTable(root){
   const all = await Store.members();
+  const allUsersForRole = await Store.users();
+  const roleByUserId = {};
+  allUsersForRole.forEach(u=>{ roleByUserId[u.id] = u.role; });
+
   let rows = [...all].sort((a,b)=>(a.member_code||'').localeCompare(b.member_code||''));
   if(_memQuery){
     const q = _memQuery.toLowerCase();
@@ -1838,10 +1842,12 @@ async function drawMemberTable(root){
             <th>Kode</th><th>Nama</th><th>Nomor HP</th><th>Tanggal Bergabung</th><th>Status</th><th>Akun Login</th><th></th>
           </tr></thead>
           <tbody>
-            ${rows.map(r=>`
+            ${rows.map(r=>{
+              const role = r.user_id ? roleByUserId[r.user_id] : null;
+              return `
               <tr>
                 <td style="white-space:nowrap;color:var(--ink-500);" class="mono">${escapeHtml(r.member_code)}</td>
-                <td style="font-weight:600;">${escapeHtml(r.name)}</td>
+                <td style="font-weight:600;">${escapeHtml(r.name)} ${role==='admin' ? '<span class="badge badge-gold" style="margin-left:6px;">Admin</span>' : ''}</td>
                 <td class="mono">${escapeHtml(r.phone)}</td>
                 <td style="white-space:nowrap;">${formatDate(r.join_date)}</td>
                 <td><span class="badge ${r.status==='Aktif'?'badge-green':'badge-gray'}">${r.status}</span></td>
@@ -1852,7 +1858,7 @@ async function drawMemberTable(root){
                   <button class="icon-btn" data-del="${r.id}" aria-label="Hapus" style="color:var(--red-600);"><i class="ti ti-trash"></i></button>
                 </td>
               </tr>
-            `).join('')}
+            `;}).join('')}
           </tbody>
         </table>
       </div>
@@ -1896,6 +1902,11 @@ async function openMemberDetail(id){
 async function openMemberForm(id){
   const members = await Store.members();
   const existing = id ? members.find(x=>x.id===id) : null;
+  let linkedUser = null;
+  if(existing && existing.user_id){
+    const allUsersForRole = await Store.users();
+    linkedUser = allUsersForRole.find(u=>u.id===existing.user_id) || null;
+  }
 
   openModal({
     title: existing ? 'Edit member' : 'Tambah member',
@@ -1940,6 +1951,16 @@ async function openMemberForm(id){
           <div class="field-hint">Member dapat mengganti password ini setelah login.</div>
         </div>
       </div>
+      ${linkedUser ? `
+      <div class="field" style="margin-top:12px;">
+        <label for="memRole">Peran akun</label>
+        <select id="memRole">
+          <option value="member" ${linkedUser.role==='member'?'selected':''}>Member</option>
+          <option value="admin" ${linkedUser.role==='admin'?'selected':''}>Administrator</option>
+        </select>
+        <div class="field-hint">Administrator memiliki akses penuh ke seluruh data keuangan dan pengelolaan member.</div>
+      </div>
+      ` : ''}
       <div id="memFormErr" class="field-error" style="display:none;margin-top:10px;"></div>
     `,
     footHTML: `
@@ -1982,6 +2003,20 @@ async function openMemberForm(id){
           return;
         }
 
+        const newRole = modal.querySelector('#memRole')?.value || null;
+
+        if(newRole && existing && existing.user_id){
+          const targetUser = allUsers.find(u=>u.id===existing.user_id);
+          if(targetUser && targetUser.role==='admin' && newRole==='member'){
+            const otherAdmins = allUsers.filter(u=>u.role==='admin' && u.id!==targetUser.id && u.status==='Aktif');
+            if(otherAdmins.length===0){
+              errBox.textContent = 'Tidak dapat menurunkan peran ini karena merupakan satu-satunya administrator aktif. Jadikan member lain admin terlebih dahulu.';
+              errBox.style.display = 'block';
+              return;
+            }
+          }
+        }
+
         if(createAccount){
           if(password.length < 6){
             errBox.textContent = 'Password awal minimal 6 karakter untuk membuat akun login.';
@@ -2015,8 +2050,11 @@ async function openMemberForm(id){
             allUsers[uidx].phone = phone;
             allUsers[uidx].address = address;
             allUsers[uidx].status = status;
+            if(newRole) allUsers[uidx].role = newRole;
             allUsers[uidx].updated_at = new Date().toISOString();
             await DB.set('users', allUsers);
+            // refresh current session if admin just edited their own account
+            if(Auth.current && Auth.current.id===allUsers[uidx].id) Auth.current = allUsers[uidx];
           }
         }
 
