@@ -292,8 +292,6 @@ tbody tr:hover{background:var(--ink-50);}
 .scoreboard-sub .dot{width:7px;height:7px;border-radius:50%;}
 
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;}
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
-.schedule-card{padding:18px;}
 .kpi-card{background:var(--paper);border:1px solid var(--ink-100);border-radius:var(--radius-lg);padding:16px 18px;}
 .kpi-card .lbl{font-size:11.5px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:6px;}
 .kpi-card .val{font-size:24px;font-weight:700;color:var(--field-900);margin-top:6px;letter-spacing:-0.01em;}
@@ -374,8 +372,7 @@ const TABLE_MAP = {
   members: 'members',
   incomes: 'incomes',
   expenses: 'expenses',
-  withdrawals: 'withdrawals',
-  schedules: 'schedules'
+  withdrawals: 'withdrawals'
 };
 
 async function supaRequest(path, options={}){
@@ -423,12 +420,9 @@ const DB = {
       return fallback;
     }
   },
-  // STRATEGI AMAN: upsert (insert-atau-update berdasarkan id) dulu, baru
-  // hapus baris yang sudah tidak ada lagi di array baru SEBAGAI LANGKAH
-  // TERAKHIR. Ini supaya kalau terjadi error di tengah proses (koneksi
-  // putus, dsb), data lama tidak ikut hilang sebelum data baru tersimpan
-  // dengan sukses — beda dengan strategi lama (hapus dulu baru insert)
-  // yang bisa membuat seluruh tabel kosong kalau insert-nya gagal.
+  // DB.set selalu dipanggil dengan array/objek LENGKAP (state penuh terbaru),
+  // jadi strategi paling aman & sederhana: hapus semua baris lama di tabel
+  // itu, lalu insert ulang state barunya (upsert massal).
   async set(key, value){
     try{
       if(key === 'seeded') return true;
@@ -443,25 +437,17 @@ const DB = {
 
       const table = TABLE_MAP[key];
       if(!table) return false;
-      if(!Array.isArray(value)) return false;
 
-      // 1) Upsert seluruh baris baru (insert kalau id belum ada, update kalau sudah ada)
-      if(value.length){
-        await supaRequest(`${table}?on_conflict=id`, {
+      // Hapus semua baris lama di tabel ini
+      await supaRequest(`${table}?id=neq.__never__`, { method: 'DELETE', prefer: 'return=minimal' });
+
+      // Insert ulang seluruh array (kalau kosong, cukup berhenti di sini)
+      if(Array.isArray(value) && value.length){
+        await supaRequest(table, {
           method: 'POST',
           body: JSON.stringify(value),
-          prefer: 'resolution=merge-duplicates,return=minimal'
+          prefer: 'return=minimal'
         });
-      }
-
-      // 2) Baru hapus baris lama yang sudah tidak ada di array baru (penghapusan eksplisit)
-      const currentIds = value.map(v=>v.id).filter(Boolean);
-      if(currentIds.length){
-        const idList = currentIds.map(id=>`"${id}"`).join(',');
-        await supaRequest(`${table}?id=not.in.(${idList})`, { method: 'DELETE', prefer: 'return=minimal' });
-      } else {
-        // array baru kosong total -> memang sengaja mengosongkan tabel
-        await supaRequest(`${table}?id=neq.__never__`, { method: 'DELETE', prefer: 'return=minimal' });
       }
       return true;
     }catch(e){
@@ -648,7 +634,6 @@ const Store = {
   async incomes(){ return DB.get('incomes', []); },
   async expenses(){ return DB.get('expenses', []); },
   async withdrawals(){ return DB.get('withdrawals', []); },
-  async schedules(){ return DB.get('schedules', []); },
   async clubProfile(){ return DB.get('club_profile', {name:'BSV FC', logo:null}); },
 
   async saldoKas(){
@@ -1810,231 +1795,10 @@ function deleteWithdrawal(id, root){
 
 
 /* ============================================================
-   JADWAL LATIHAN / PERTANDINGAN
+   DATA MEMBER
    ============================================================ */
 
-const DAY_ORDER = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
-
-async function renderSchedules(root){
-  if(Auth.isAdmin()){
-    const topbar = document.getElementById('topbarActions');
-    topbar.innerHTML = `<button class="btn btn-gold" id="addScheduleBtn"><i class="ti ti-plus"></i>Tambah Jadwal</button>`;
-    document.getElementById('addScheduleBtn').onclick = ()=>openScheduleForm();
-  }
-  await drawSchedules(root);
-}
-
-async function drawSchedules(root){
-  const list = await Store.schedules();
-  const rows = [...list].sort((a,b)=>{
-    const da = a.is_recurring ? DAY_ORDER.indexOf(a.day_of_week) : 99;
-    const db = b.is_recurring ? DAY_ORDER.indexOf(b.day_of_week) : 99;
-    if(da!==db) return da-db;
-    return (a.start_time||'').localeCompare(b.start_time||'');
-  });
-
-  if(rows.length===0){
-    root.innerHTML = `<div class="card"><div class="empty-state"><i class="ti ti-calendar-event"></i><p>Belum ada jadwal yang ditambahkan.</p></div></div>`;
-    return;
-  }
-
-  root.innerHTML = `
-    <div class="cards-grid">
-      ${rows.map(s=>`
-        <div class="card schedule-card">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
-            <div>
-              <div class="badge badge-gold" style="margin-bottom:8px;">
-                <i class="ti ti-calendar-event" style="font-size:11px"></i>
-                ${s.is_recurring ? `Setiap ${escapeHtml(s.day_of_week||'-')}` : formatDate(s.schedule_date)}
-              </div>
-              <h3 style="font-size:16px;margin:0 0 4px;">${escapeHtml(s.title)}</h3>
-              <div style="font-size:13.5px;color:var(--ink-700);font-weight:600;">
-                <i class="ti ti-clock" style="font-size:13px;color:var(--ink-500);"></i>
-                ${escapeHtml(s.start_time)} - ${escapeHtml(s.end_time)} WIB
-              </div>
-            </div>
-            ${Auth.isAdmin() ? `
-            <div style="display:flex;gap:4px;flex-shrink:0;">
-              <button class="icon-btn" data-edit-sch="${s.id}" aria-label="Edit"><i class="ti ti-edit"></i></button>
-              <button class="icon-btn" data-del-sch="${s.id}" aria-label="Hapus" style="color:var(--red-600);"><i class="ti ti-trash"></i></button>
-            </div>` : ''}
-          </div>
-          ${s.location_name ? `
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-700);">
-            <div style="display:flex;gap:6px;align-items:flex-start;">
-              <i class="ti ti-map-pin" style="font-size:14px;color:var(--ink-500);margin-top:2px;flex-shrink:0;"></i>
-              <div>
-                <div style="font-weight:600;">${escapeHtml(s.location_name)}</div>
-                ${s.location_address ? `<div style="color:var(--ink-500);margin-top:2px;line-height:1.5;">${escapeHtml(s.location_address)}</div>` : ''}
-                ${s.maps_url ? `<a href="${escapeHtml(s.maps_url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;color:var(--gold-600);font-weight:600;text-decoration:none;font-size:12.5px;">Buka di Google Maps <i class="ti ti-external-link" style="font-size:12px"></i></a>` : ''}
-              </div>
-            </div>
-          </div>` : ''}
-          ${s.notes ? `<div style="margin-top:10px;font-size:12.5px;color:var(--ink-500);font-style:italic;">${escapeHtml(s.notes)}</div>` : ''}
-        </div>
-      `).join('')}
-    </div>
-  `;
-
-  if(Auth.isAdmin()){
-    root.querySelectorAll('[data-edit-sch]').forEach(b=>b.onclick = ()=>openScheduleForm(b.dataset.editSch));
-    root.querySelectorAll('[data-del-sch]').forEach(b=>b.onclick = ()=>deleteSchedule(b.dataset.delSch, root));
-  }
-}
-
-async function openScheduleForm(id){
-  const list = await Store.schedules();
-  const existing = id ? list.find(x=>x.id===id) : null;
-  const isRecurring = existing ? !!existing.is_recurring : true;
-
-  openModal({
-    title: existing ? 'Edit jadwal' : 'Tambah jadwal',
-    width: 480,
-    bodyHTML: `
-      <div class="field">
-        <label for="schTitle">Nama kegiatan</label>
-        <input type="text" id="schTitle" value="${existing?escapeHtml(existing.title):''}" placeholder="Contoh: Latihan Rutin / Pertandingan vs Klub X" required />
-      </div>
-      <div class="field">
-        <label style="display:flex;align-items:center;gap:8px;">
-          <input type="checkbox" id="schRecurring" style="width:auto;" ${isRecurring?'checked':''} />
-          Jadwal rutin mingguan
-        </label>
-      </div>
-      <div id="schRecurringField" class="field" style="${isRecurring?'':'display:none;'}">
-        <label for="schDay">Hari</label>
-        <select id="schDay">
-          ${DAY_ORDER.map(d=>`<option value="${d}" ${existing&&existing.day_of_week===d?'selected':''}>${d}</option>`).join('')}
-        </select>
-      </div>
-      <div id="schDateField" class="field" style="${isRecurring?'display:none;':''}">
-        <label for="schDate">Tanggal</label>
-        <input type="date" id="schDate" value="${existing&&existing.schedule_date?existing.schedule_date:''}" />
-      </div>
-      <div style="display:flex;gap:10px;">
-        <div class="field" style="flex:1;">
-          <label for="schStart">Jam mulai</label>
-          <input type="time" id="schStart" value="${existing?escapeHtml(existing.start_time):'07:00'}" required />
-        </div>
-        <div class="field" style="flex:1;">
-          <label for="schEnd">Jam selesai</label>
-          <input type="time" id="schEnd" value="${existing?escapeHtml(existing.end_time):'09:00'}" required />
-        </div>
-      </div>
-      <div class="field">
-        <label for="schLocName">Nama lokasi</label>
-        <input type="text" id="schLocName" value="${existing?escapeHtml(existing.location_name||''):''}" placeholder="Contoh: Lapangan Grand Apple Rancamulya" />
-      </div>
-      <div class="field">
-        <label for="schLocAddr">Alamat lokasi</label>
-        <input type="text" id="schLocAddr" value="${existing?escapeHtml(existing.location_address||''):''}" placeholder="Alamat lengkap" />
-      </div>
-      <div class="field">
-        <label for="schMapsUrl">Link Google Maps (opsional)</label>
-        <input type="text" id="schMapsUrl" value="${existing?escapeHtml(existing.maps_url||''):''}" placeholder="https://maps.google.com/..." />
-      </div>
-      <div class="field" style="margin-bottom:0;">
-        <label for="schNotes">Catatan (opsional)</label>
-        <input type="text" id="schNotes" value="${existing?escapeHtml(existing.notes||''):''}" placeholder="Contoh: Bawa jersey kandang" />
-      </div>
-      <div id="schFormErr" class="field-error" style="display:none;margin-top:10px;"></div>
-    `,
-    footHTML: `
-      <button class="btn btn-outline" id="schCancel">Batal</button>
-      <button class="btn btn-gold" id="schSave">Simpan</button>
-    `,
-    onMount(modal){
-      modal.querySelector('#schCancel').onclick = closeModal;
-
-      modal.querySelector('#schRecurring').onchange = (e)=>{
-        modal.querySelector('#schRecurringField').style.display = e.target.checked ? '' : 'none';
-        modal.querySelector('#schDateField').style.display = e.target.checked ? 'none' : '';
-      };
-
-      modal.querySelector('#schSave').onclick = async ()=>{
-        const title = modal.querySelector('#schTitle').value.trim();
-        const recurring = modal.querySelector('#schRecurring').checked;
-        const day = modal.querySelector('#schDay').value;
-        const date = modal.querySelector('#schDate').value;
-        const start = modal.querySelector('#schStart').value;
-        const end = modal.querySelector('#schEnd').value;
-        const locName = modal.querySelector('#schLocName').value.trim();
-        const locAddr = modal.querySelector('#schLocAddr').value.trim();
-        const mapsUrl = modal.querySelector('#schMapsUrl').value.trim();
-        const notes = modal.querySelector('#schNotes').value.trim();
-        const errBox = modal.querySelector('#schFormErr');
-        errBox.style.display = 'none';
-
-        if(!title || !start || !end){
-          errBox.textContent = 'Nama kegiatan, jam mulai, dan jam selesai wajib diisi.';
-          errBox.style.display = 'block';
-          return;
-        }
-        if(recurring && !day){
-          errBox.textContent = 'Pilih hari untuk jadwal rutin.';
-          errBox.style.display = 'block';
-          return;
-        }
-        if(!recurring && !date){
-          errBox.textContent = 'Pilih tanggal untuk jadwal khusus.';
-          errBox.style.display = 'block';
-          return;
-        }
-
-        const all = await Store.schedules();
-        const payload = {
-          title,
-          is_recurring: recurring,
-          day_of_week: recurring ? day : null,
-          schedule_date: recurring ? null : date,
-          start_time: start,
-          end_time: end,
-          location_name: locName || null,
-          location_address: locAddr || null,
-          maps_url: mapsUrl || null,
-          notes: notes || null,
-          updated_at: new Date().toISOString()
-        };
-
-        if(existing){
-          const idx = all.findIndex(x=>x.id===existing.id);
-          if(idx>=0) all[idx] = {...all[idx], ...payload};
-        } else {
-          all.push({ id: uid('sch'), created_at: new Date().toISOString(), ...payload });
-        }
-
-        await DB.set('schedules', all);
-        closeModal();
-        showToast(existing ? 'Jadwal diperbarui.' : 'Jadwal ditambahkan.');
-        await navigate('jadwal');
-      };
-    }
-  });
-}
-
-function deleteSchedule(id, root){
-  confirmAction({
-    title: 'Hapus jadwal?',
-    message: 'Jadwal ini akan dihapus dan tidak dapat dikembalikan.',
-    confirmLabel: 'Hapus',
-    danger: true,
-    onConfirm: async ()=>{
-      const all = await Store.schedules();
-      await DB.set('schedules', all.filter(x=>x.id!==id));
-      showToast('Jadwal dihapus.');
-      await navigate('jadwal');
-    }
-  });
-}
-
-
-
-
 let _memQuery = '';
-let _memCacheAll = [];
-let _memCacheRoleByUserId = {};
-let _memSearchDebounce = null;
 
 async function renderMembers(root){
   if(!Auth.isAdmin()){
@@ -2042,16 +1806,23 @@ async function renderMembers(root){
     return;
   }
   const topbar = document.getElementById('topbarActions');
-  topbar.innerHTML = `
-    <button class="btn btn-outline" id="exportMemberBtn"><i class="ti ti-file-spreadsheet"></i>Export Excel</button>
-    <button class="btn btn-gold" id="addMemberBtn"><i class="ti ti-plus"></i>Tambah Member</button>
-  `;
+  topbar.innerHTML = `<button class="btn btn-gold" id="addMemberBtn"><i class="ti ti-plus"></i>Tambah Member</button>`;
   document.getElementById('addMemberBtn').onclick = ()=>openMemberForm();
-  document.getElementById('exportMemberBtn').onclick = ()=>exportMembersToExcel();
+  await drawMemberTable(root);
+}
 
-  // Render kerangka halaman SEKALI (termasuk kotak pencarian), supaya
-  // kotak input tidak pernah dihancurkan/dibuat ulang saat mengetik —
-  // ini yang sebelumnya menyebabkan kursor/fokus hilang tiap huruf.
+async function drawMemberTable(root){
+  const all = await Store.members();
+  const allUsersForRole = await Store.users();
+  const roleByUserId = {};
+  allUsersForRole.forEach(u=>{ roleByUserId[u.id] = u.role; });
+
+  let rows = [...all].sort((a,b)=>(a.member_code||'').localeCompare(b.member_code||''));
+  if(_memQuery){
+    const q = _memQuery.toLowerCase();
+    rows = rows.filter(r=> (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q) || (r.member_code||'').toLowerCase().includes(q));
+  }
+
   root.innerHTML = `
     <div class="card" style="margin-bottom:16px;">
       <div class="field" style="margin:0;">
@@ -2059,45 +1830,7 @@ async function renderMembers(root){
         <input type="text" id="memSearch" value="${escapeHtml(_memQuery)}" placeholder="Cari nama, nomor HP, atau kode member..." />
       </div>
     </div>
-    <div id="memTableArea"><p style="font-size:13px;color:var(--ink-500);">Memuat data member...</p></div>
-  `;
 
-  const searchInput = document.getElementById('memSearch');
-  searchInput.oninput = (e)=>{
-    const val = e.target.value;
-    clearTimeout(_memSearchDebounce);
-    // Debounce 250ms: filter baru jalan setelah jeda ketik singkat,
-    // bukan di setiap huruf, supaya tidak terasa berat/hang.
-    _memSearchDebounce = setTimeout(()=>{
-      _memQuery = val;
-      drawMemberTable();
-    }, 250);
-  };
-
-  // Fetch data SEKALI ke Supabase, simpan di cache memori. Pencarian
-  // berikutnya cukup filter cache ini, tidak fetch ulang ke server.
-  const all = await Store.members();
-  const allUsersForRole = await Store.users();
-  _memCacheAll = all;
-  _memCacheRoleByUserId = {};
-  allUsersForRole.forEach(u=>{ _memCacheRoleByUserId[u.id] = u.role; });
-
-  drawMemberTable();
-}
-
-function drawMemberTable(){
-  const tableArea = document.getElementById('memTableArea');
-  if(!tableArea) return; // halaman sudah berpindah sebelum data selesai dimuat
-
-  const all = _memCacheAll;
-  const roleByUserId = _memCacheRoleByUserId;
-  let rows = [...all].sort((a,b)=>(a.member_code||'').localeCompare(b.member_code||''));
-  if(_memQuery){
-    const q = _memQuery.toLowerCase();
-    rows = rows.filter(r=> (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q) || (r.member_code||'').toLowerCase().includes(q));
-  }
-
-  tableArea.innerHTML = `
     <div style="font-size:13px;color:var(--ink-500);margin-bottom:10px;">${rows.length} member ditemukan dari ${all.length} total</div>
 
     ${rows.length===0 ? `
@@ -2132,41 +1865,10 @@ function drawMemberTable(){
     `}
   `;
 
-  tableArea.querySelectorAll('[data-detail]').forEach(b=>b.onclick = ()=>openMemberDetail(b.dataset.detail));
-  tableArea.querySelectorAll('[data-edit]').forEach(b=>b.onclick = ()=>openMemberForm(b.dataset.edit));
-  tableArea.querySelectorAll('[data-del]').forEach(b=>b.onclick = ()=>deleteMember(b.dataset.del));
-}
-
-function exportMembersToExcel(){
-  const rows = [...(_memCacheAll||[])].sort((a,b)=>(a.member_code||'').localeCompare(b.member_code||''));
-  if(!rows.length){ showToast('Tidak ada data member untuk diexport.'); return; }
-
-  const header = ['Kode Member','Nama','Nomor HP','Alamat','Tanggal Bergabung','Status','Punya Akun Login'];
-  const escapeCsv = (val)=>{
-    const s = (val===null||val===undefined) ? '' : String(val);
-    if(/[",\n;]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  };
-  const lines = [header.map(escapeCsv).join(';')];
-  rows.forEach(r=>{
-    lines.push([
-      r.member_code||'', r.name||'', r.phone||'', r.address||'',
-      formatDate(r.join_date), r.status||'', r.user_id ? 'Ya' : 'Tidak'
-    ].map(escapeCsv).join(';'));
-  });
-
-  // BOM UTF-8 di awal supaya Excel membaca karakter Indonesia (é, dst) dengan benar
-  const csvContent = '\uFEFF' + lines.join('\r\n');
-  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Data_Member_BSV_FC_${todayISO()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('Data member berhasil diexport.');
+  document.getElementById('memSearch').oninput = e=>{ _memQuery = e.target.value; drawMemberTable(root); };
+  root.querySelectorAll('[data-detail]').forEach(b=>b.onclick = ()=>openMemberDetail(b.dataset.detail));
+  root.querySelectorAll('[data-edit]').forEach(b=>b.onclick = ()=>openMemberForm(b.dataset.edit));
+  root.querySelectorAll('[data-del]').forEach(b=>b.onclick = ()=>deleteMember(b.dataset.del, root));
 }
 
 async function openMemberDetail(id){
@@ -2376,7 +2078,7 @@ async function openMemberForm(id){
   });
 }
 
-function deleteMember(id){
+function deleteMember(id, root){
   confirmAction({
     title:'Hapus member?',
     message:'Data member ini akan dihapus. Jika member memiliki akun login, akun tersebut juga akan dinonaktifkan.',
@@ -2752,3 +2454,301 @@ async function drawReportCashflow(content){
         <div style="font-weight:700;font-size:16px;color:var(--field-900);">Laporan Arus Kas (Cashflow)</div>
         <div style="font-size:12px;color:var(--ink-500);">BSV FC &middot; Dicetak ${formatDateTime(new Date().toISOString())}</div>
       </div>
+      <table style="font-size:13.5px;">
+        <tr><td style="padding:8px 0;">Saldo Awal</td><td style="text-align:right;" class="num">${formatRupiah(0)}</td></tr>
+        <tr style="border-top:1px solid var(--ink-100);"><td style="padding:8px 0;color:#27500A;">+ Total Pemasukan</td><td style="text-align:right;color:#27500A;font-weight:600;" class="num">${formatRupiah(totalIn)}</td></tr>
+        <tr><td style="padding:8px 0;color:#791F1F;">&minus; Total Pengeluaran</td><td style="text-align:right;color:#791F1F;font-weight:600;" class="num">${formatRupiah(totalExp)}</td></tr>
+        <tr><td style="padding:8px 0;color:var(--gold-800);">&minus; Total Penarikan</td><td style="text-align:right;color:var(--gold-800);font-weight:600;" class="num">${formatRupiah(totalWd)}</td></tr>
+        <tr style="border-top:2px solid var(--field-900);"><td style="padding:10px 0;font-weight:700;font-size:15px;">Saldo Akhir</td><td style="text-align:right;font-weight:700;font-size:15px;" class="num">${formatRupiah(saldoAkhir)}</td></tr>
+      </table>
+
+      <div class="divider"></div>
+      <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;color:var(--field-800);">Rincian pemasukan per kategori</div>
+      <table style="font-size:12.5px;margin-bottom:14px;">
+        ${INCOME_CATEGORIES.filter(c=>incByCat[c]>0).map(c=>`<tr><td style="padding:4px 0;color:var(--ink-700);">${c}</td><td style="text-align:right;" class="num">${formatRupiah(incByCat[c])}</td></tr>`).join('') || '<tr><td style="color:var(--ink-500);padding:4px 0;">Belum ada data</td></tr>'}
+      </table>
+
+      <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;color:var(--field-800);">Rincian pengeluaran per kategori</div>
+      <table style="font-size:12.5px;">
+        ${EXPENSE_CATEGORIES.filter(c=>expByCat[c]>0).map(c=>`<tr><td style="padding:4px 0;color:var(--ink-700);">${c}</td><td style="text-align:right;" class="num">${formatRupiah(expByCat[c])}</td></tr>`).join('') || '<tr><td style="color:var(--ink-500);padding:4px 0;">Belum ada data</td></tr>'}
+      </table>
+    </div>
+  `;
+  document.getElementById('printCashflow').onclick = ()=>window.print();
+}
+
+function exportBar(count){
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;" class="no-print">
+      <div style="font-size:13px;color:var(--ink-500);">${count} baris data</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" id="exportExcelBtn" ${count===0?'disabled':''}><i class="ti ti-file-spreadsheet"></i>Export Excel</button>
+        <button class="btn btn-outline btn-sm" id="exportPdfBtn" ${count===0?'disabled':''}><i class="ti ti-file-type-pdf"></i>Export PDF</button>
+      </div>
+    </div>
+  `;
+}
+
+function emptyReport(){
+  return `<div class="card"><div class="empty-state"><i class="ti ti-file-off"></i><p>Tidak ada data untuk filter yang dipilih.</p></div></div>`;
+}
+
+function bindExportButtons(dataRows, filenameBase, reportTitle){
+  const excelBtn = document.getElementById('exportExcelBtn');
+  const pdfBtn = document.getElementById('exportPdfBtn');
+  if(excelBtn) excelBtn.onclick = ()=>exportToExcel(dataRows, filenameBase, reportTitle);
+  if(pdfBtn) pdfBtn.onclick = ()=>window.print();
+}
+
+let _xlsxLoaded = false;
+function loadXLSXLib(){
+  return new Promise((resolve,reject)=>{
+    if(window.XLSX){ resolve(); return; }
+    if(_xlsxLoaded){ resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = ()=>{ _xlsxLoaded = true; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportToExcel(rows, filenameBase, sheetTitle){
+  try{
+    await loadXLSXLib();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetTitle.slice(0,28));
+    XLSX.writeFile(wb, `${filenameBase}_${todayISO()}.xlsx`);
+    showToast('Excel berhasil diunduh.');
+  }catch(e){
+    console.error(e);
+    showToast('Gagal mengekspor Excel. Coba lagi.', 'err');
+  }
+}
+
+
+/* ============================================================
+   APP SHELL — Sidebar, Topbar, Router
+   ============================================================ */
+
+const Router = {
+  route: 'dashboard',
+  params: {}
+};
+
+const NAV_ADMIN = [
+  {section:'Utama', items:[
+    {id:'dashboard', label:'Dashboard', icon:'ti-layout-dashboard'}
+  ]},
+  {section:'Transaksi', items:[
+    {id:'pemasukan', label:'Pemasukan', icon:'ti-trending-up'},
+    {id:'pengeluaran', label:'Pengeluaran', icon:'ti-trending-down'},
+    {id:'penarikan', label:'Penarikan Dana', icon:'ti-cash-banknote'}
+  ]},
+  {section:'Laporan', items:[
+    {id:'laporan', label:'Laporan & Export', icon:'ti-report-analytics'}
+  ]},
+  {section:'Pengelolaan', items:[
+    {id:'member', label:'Data Member', icon:'ti-users'}
+  ]},
+  {section:'Akun', items:[
+    {id:'profil', label:'Profil & Password', icon:'ti-settings'}
+  ]}
+];
+
+const NAV_MEMBER = [
+  {section:'Utama', items:[
+    {id:'dashboard', label:'Dashboard', icon:'ti-layout-dashboard'}
+  ]},
+  {section:'Riwayat', items:[
+    {id:'pemasukan', label:'Pemasukan', icon:'ti-trending-up'},
+    {id:'pengeluaran', label:'Pengeluaran', icon:'ti-trending-down'},
+    {id:'penarikan', label:'Penarikan Dana', icon:'ti-cash-banknote'}
+  ]},
+  {section:'Laporan', items:[
+    {id:'laporan', label:'Laporan', icon:'ti-report-analytics'}
+  ]},
+  {section:'Akun', items:[
+    {id:'profil', label:'Profil & Password', icon:'ti-settings'}
+  ]}
+];
+
+function initials(name){
+  if(!name) return '?';
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+
+async function renderShell(){
+  const app = document.getElementById('app');
+  const profile = await Store.clubProfile();
+  const nav = Auth.isAdmin() ? NAV_ADMIN : NAV_MEMBER;
+  const u = Auth.current;
+
+  const crestHTML = profile.logo
+    ? `<img src="${profile.logo}" alt="Logo BSV FC" />`
+    : `<div class="crest-fallback">BSV</div>`;
+
+  const navHTML = nav.map(sec=>`
+    <div class="sidebar-section-label">${sec.section}</div>
+    ${sec.items.map(it=>`
+      <a href="#" class="nav-item" data-route="${it.id}">
+        <i class="ti ${it.icon}"></i><span>${it.label}</span>
+      </a>
+    `).join('')}
+  `).join('');
+
+  app.innerHTML = `
+    <div class="app-shell">
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+          ${crestHTML}
+          <div class="brand-text">
+            <strong>Laporan BSV FC</strong>
+            <span>Finance System</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">${navHTML}</nav>
+        <div class="sidebar-foot">
+          <div class="avatar-chip">${initials(u.name)}</div>
+          <div class="who">
+            <strong>${escapeHtml(u.name)}</strong>
+            <span>${u.role==='admin'?'Administrator':'Member'}</span>
+          </div>
+          <button class="icon-btn" id="logoutBtn" aria-label="Keluar"><i class="ti ti-logout-2"></i></button>
+        </div>
+      </aside>
+      <div class="main">
+        <header class="topbar">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Buka menu"><i class="ti ti-menu-2"></i></button>
+            <div>
+              <h1 id="pageTitle">Dashboard</h1>
+              <div class="sub" id="pageSub"></div>
+            </div>
+          </div>
+          <div id="topbarActions"></div>
+        </header>
+        <main class="content" id="contentRoot"></main>
+      </div>
+    </div>
+  `;
+
+  // nav interactions
+  document.querySelectorAll('.nav-item').forEach(a=>{
+    a.addEventListener('click', (e)=>{
+      e.preventDefault();
+      navigate(a.dataset.route);
+      closeSidebarMobile();
+    });
+  });
+  document.getElementById('logoutBtn').onclick = ()=>{
+    confirmAction({
+      title:'Keluar dari aplikasi?',
+      message:'Anda perlu login kembali untuk mengakses Laporan BSV FC.',
+      confirmLabel:'Keluar',
+      danger:true,
+      onConfirm: async ()=>{
+        Auth.logout();
+        await boot();
+        showToast('Anda telah keluar.');
+      }
+    });
+  };
+  document.getElementById('mobileToggle').onclick = ()=>{
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarBackdrop').classList.add('open');
+  };
+  document.getElementById('sidebarBackdrop').onclick = closeSidebarMobile;
+
+  await navigate(Router.route, true);
+}
+
+function closeSidebarMobile(){
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebarBackdrop')?.classList.remove('open');
+}
+
+const PAGE_META = {
+  dashboard: {title:'Dashboard', sub:'Ringkasan kondisi keuangan klub'},
+  pemasukan: {title:'Pemasukan', sub:'Catatan dana masuk ke kas BSV FC'},
+  pengeluaran: {title:'Pengeluaran', sub:'Catatan dana keluar dari kas BSV FC'},
+  penarikan: {title:'Penarikan Dana', sub:'Pengambilan dana dari kas klub'},
+  laporan: {title:'Laporan & Export', sub:'Rekap laporan keuangan periode tertentu'},
+  member: {title:'Data Member', sub:'Kelola anggota dan akun BSV FC'},
+  profil: {title:'Profil & Password', sub:'Pengaturan akun pribadi Anda'}
+};
+
+async function navigate(route, skipPush){
+  if(!PAGE_META[route]) route = 'dashboard';
+  Router.route = route;
+
+  document.querySelectorAll('.nav-item').forEach(a=>{
+    a.classList.toggle('active', a.dataset.route===route);
+  });
+  document.getElementById('pageTitle').textContent = PAGE_META[route].title;
+  document.getElementById('pageSub').textContent = PAGE_META[route].sub;
+  document.getElementById('topbarActions').innerHTML = '';
+
+  const root = document.getElementById('contentRoot');
+  root.innerHTML = renderSkeleton();
+  window.scrollTo(0,0);
+
+  try{
+    switch(route){
+      case 'dashboard': await renderDashboard(root); break;
+      case 'pemasukan': await renderIncomes(root); break;
+      case 'pengeluaran': await renderExpenses(root); break;
+      case 'penarikan': await renderWithdrawals(root); break;
+      case 'laporan': await renderReports(root); break;
+      case 'member': await renderMembers(root); break;
+      case 'profil': await renderProfile(root); break;
+    }
+  }catch(err){
+    console.error(err);
+    root.innerHTML = `<div class="card"><div class="empty-state"><i class="ti ti-alert-triangle"></i><p>Terjadi kesalahan memuat halaman ini. Coba muat ulang.</p></div></div>`;
+  }
+}
+
+function renderSkeleton(){
+  return `
+    <div class="kpi-grid" style="margin-bottom:20px;">
+      ${[1,2,3,4].map(()=>`<div class="skeleton" style="height:88px;"></div>`).join('')}
+    </div>
+    <div class="skeleton" style="height:280px;"></div>
+  `;
+}
+
+async function boot(){
+  await Auth.init();
+  if(Auth.current){
+    Router.route = 'dashboard';
+    await renderShell();
+  } else {
+    await renderLogin();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', async ()=>{
+  document.getElementById('app').innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--field-900);">
+      <div style="text-align:center;color:var(--line);">
+        <div style="font-family:'Archivo Black';font-size:20px;color:var(--gold-400);margin-bottom:8px;">BSV FC</div>
+        <div style="font-size:12.5px;color:var(--ink-300);">Memuat Laporan BSV FC...</div>
+      </div>
+    </div>
+  `;
+  try{
+    await ensureSeedData();
+  }catch(e){
+    console.error('Seed error', e);
+  }
+  await boot();
+});
+
+</script>
+
+
+</body>
+</html>
